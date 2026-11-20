@@ -88,6 +88,25 @@ class DodaTests(unittest.TestCase):
         self.assertEqual(self.client.get(f"/api/files/{task['files'][0]['id']}").text, "Tahlil natijasi")
         self.assertEqual(self.client.post(f"/api/tasks/{task_id}/run").status_code, 409)
 
+    def test_legacy_import_keeps_state_and_rejects_partial_batch(self):
+        self.login()
+        uploaded = self.client.post("/api/files", json={"name": "old.txt", "data": base64.b64encode(b"old file").decode()}).json()
+        legacy = {"id": "t123456789", "title": "Oldingi ish", "project": "DARIKO",
+                  "agent": "Hujjat va sifat agenti", "result": "Hisobot", "deadline": "Ertaga",
+                  "step": 4, "evidence": "Tekshirildi", "approved": True,
+                  "files": [uploaded], "events": [{"at": "old", "text": "Bajarildi"}]}
+        broken = {**legacy, "id": "t999999999", "files": [{"id": "missing"}]}
+        self.assertEqual(self.client.post("/api/import", json={"tasks": [broken, legacy]}).status_code, 400)
+        self.assertFalse(any(t["id"] == legacy["id"] for t in self.client.get("/api/state").json()["tasks"]))
+        result = self.client.post("/api/import", json={"tasks": [legacy]})
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json()["imported"], [legacy["id"]])
+        self.assertEqual(self.client.post("/api/import", json={"tasks": [legacy]}).json()["skipped"], [legacy["id"]])
+        task = next(t for t in self.client.get("/api/state").json()["tasks"] if t["id"] == legacy["id"])
+        self.assertTrue(task["approved"])
+        self.assertEqual(task["step"], 4)
+        self.assertEqual(self.client.get(f"/api/files/{uploaded['id']}").content, b"old file")
+
 
 if __name__ == "__main__":
     unittest.main()

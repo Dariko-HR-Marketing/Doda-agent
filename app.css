@@ -11,3 +11,7 @@
 .login-card h1{margin:0;font-size:26px}.login-card p{margin:0;color:#a6b9c3}
 .login-card input{width:100%;padding:15px;color:white;background:#142d3e;border:1px solid #386173;border-radius:10px;font:inherit}
 .login-card small{color:#ffadad;min-height:1em}
+.migration-notice{margin:0 0 22px;padding:18px 20px;border:1px solid #48b57e;border-radius:16px;background:#102e35;color:#f4fffa;display:grid;gap:9px}
+.migration-notice strong{font-size:16px}.migration-notice p{margin:0;color:#d2e5e1;line-height:1.5}
+.migration-notice div{display:flex;gap:10px;flex-wrap:wrap}.migration-notice button{padding:10px 15px}
+.migration-notice button:disabled{opacity:.55;cursor:not-allowed}.migration-notice small{color:#a7d9c0}

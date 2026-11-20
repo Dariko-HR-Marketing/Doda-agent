@@ -8,6 +8,7 @@ import hmac
 import json
 import mimetypes
 import os
+import re
 import secrets
 import sqlite3
 import sys
@@ -175,6 +176,54 @@ class Task(BaseModel):
     result: str = Field(min_length=1, max_length=2000)
     deadline: str = Field(min_length=1, max_length=80)
     files: list[dict] = Field(default_factory=list, max_length=20)
+
+
+class LegacyTask(Task):
+    id: str = Field(min_length=2, max_length=80)
+    step: int = Field(ge=0, le=4)
+    evidence: str = Field(default="", max_length=5000)
+    approved: bool = False
+    events: list[dict] = Field(default_factory=list, max_length=100)
+
+
+class LegacyImport(BaseModel):
+    tasks: list[LegacyTask] = Field(min_length=1, max_length=200)
+
+
+@app.post("/api/import")
+def import_legacy(body: LegacyImport, _=Depends(authenticated)):
+    """Import existing same-origin browser tasks after their file blobs were uploaded."""
+    ids = [task.id for task in body.tasks]
+    if len(ids) != len(set(ids)) or any(not re.fullmatch(r"[A-Za-z0-9_-]{2,80}", task_id) or task_id == "sample" for task_id in ids):
+        raise HTTPException(400, "Topshiriq identifikatorlari noto‘g‘ri")
+    imported, skipped = [], []
+    with db() as con:
+        for source in reversed(body.tasks):
+            if con.execute("SELECT 1 FROM tasks WHERE id=?", (source.id,)).fetchone():
+                skipped.append(source.id)
+                continue
+            if source.agent not in ALLOWED_AGENTS or (source.approved and (source.step != 4 or not source.evidence)):
+                raise HTTPException(400, "Topshiriq holati yoki agenti noto‘g‘ri")
+            file_ids = [str(f.get("id", "")) for f in source.files]
+            if len(file_ids) != len(set(file_ids)):
+                raise HTTPException(400, "Fayl takrorlangan")
+            files = []
+            if file_ids:
+                rows = con.execute(f"SELECT id,name FROM files WHERE task_id IS NULL AND id IN ({','.join('?' for _ in file_ids)})", file_ids).fetchall()
+                if len(rows) != len(file_ids):
+                    raise HTTPException(400, "Ko‘chiriladigan fayl topilmadi")
+                files = [dict(row) for row in rows]
+            task = source.model_dump(exclude={"files"})
+            task["sample"] = False
+            task["files"] = files
+            task["events"] = [{"at": str(e.get("at", ""))[:80], "text": str(e.get("text", ""))[:500]}
+                              for e in source.events]
+            task["events"].append({"at": time.strftime("%Y-%m-%d %H:%M"), "text": "Brauzerdan serverga ko‘chirildi"})
+            con.execute("INSERT INTO tasks VALUES (?,?,?)", (source.id, json.dumps(task, ensure_ascii=False), int(time.time())))
+            for file_id in file_ids:
+                con.execute("UPDATE files SET task_id=? WHERE id=?", (source.id, file_id))
+            imported.append(source.id)
+    return {"imported": imported, "skipped": skipped}
 
 
 @app.post("/api/tasks")
