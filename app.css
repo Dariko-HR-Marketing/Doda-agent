@@ -3,3 +3,11 @@
 /* Task-critical content stays legible on desktop and touch screens. */
 .home-head p,.page-intro p{font-size:16px}.nav-item{font-size:14px}.chat-message .message-body p{font-size:14px}.activity-panel .section-head h2,.section-head h2{font-size:16px}.road-step summary b,.task-detail p,.checkrow strong,.agent-card p,.knowledge-card p,.system-card p{font-size:13px}.task-list-card h3,.quick-card b{font-size:14px}.modal label,.modal input,.modal textarea,.modal select{font-size:14px}.process-log{margin-top:24px;border-top:1px solid #365462;padding-top:15px}.process-log h3{font-size:14px;margin:0 0 12px}.process-log>div{display:flex;gap:12px;align-items:baseline;margin:9px 0;color:#bbd2d5;font-size:12px}.process-log time{color:#7ee6a0;min-width:48px;font-size:11px}
 @media(max-width:640px){.home-head p{font-size:14px}.road-step summary b{font-size:13px}.nav-item{font-size:0}}
+/* Private server mode, hidden when the static demonstration is opened locally. */
+.login-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(1,12,25,.94);align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(14px)}
+.login-overlay.shown{display:flex}
+.login-card{width:min(100%,390px);padding:36px;border:1px solid rgba(126,221,176,.25);border-radius:24px;background:#0b2132;color:#f7fffc;box-shadow:0 24px 80px #0009;display:grid;gap:16px}
+.login-card .brand-mark{margin-bottom:10px}
+.login-card h1{margin:0;font-size:26px}.login-card p{margin:0;color:#a6b9c3}
+.login-card input{width:100%;padding:15px;color:white;background:#142d3e;border:1px solid #386173;border-radius:10px;font:inherit}
+.login-card small{color:#ffadad;min-height:1em}

@@ -1,27 +1,25 @@
-# DODA — shaxsiy agent prototipi
+# DODA — shaxsiy agent
 
-O‘rtoq Kapitan uchun DODA shaxsiy agenti va DARIKO mutaxassis agentlarining interaktiv web prototipi.
+O‘rtoq Kapitan uchun DODA suhbat oynasi va DARIKO mutaxassis agentlarining web ilovasi. Jonli statik prototip: [doda.tajriba24.uz](https://doda.tajriba24.uz/).
 
-## Hozir ishlaydigan qismlar
+## Joriy funksiyalar va chegaralar
 
-- DODA bilan suhbat va topshiriqni ajratish namoyishi.
-- Topshiriq pasporti, besh bosqichli yo‘l xaritasi va Kapitan qabuli namoyishi.
-- Hujjat va sifat, HR jarayonlari, marketing va tadqiqot agentlarining rol tavsiflari.
-- Brauzerda vazifalarni `localStorage`da, biriktirilgan fayllarni `IndexedDB`da saqlash.
-- Brauzer qo‘llab-quvvatlasa, `SpeechRecognition` orqali ilova ochiq paytda ovoz kiritishni sinash.
+| Oqim | Statik prototip (`main`) | Server bosqichi (`feature/doda-core`) |
+| --- | --- | --- |
+| Suhbat | Namuna javob | OpenAI Responses API orqali haqiqiy javob; tarix SQLite’da |
+| Topshiriq pasporti | Shu brauzerda | Serverda, loyiha/agent/natija/muddat bilan |
+| Bosqich va Kapitan qabuli | Qo‘lda namoyish | Serverda qayd, faqat dalildan keyin qabul |
+| Fayl | IndexedDB’da | Serverda xususiy fayl; topshiriqqa biriktirish va yuklash |
+| Agent | Rol tavsifi | Tanlangan rol bo‘yicha yozma natija; fayllar faqat **Agent bilan bajarish** bosilganda modelga yuboriladi |
+| Ovoz | Brauzer SpeechRecognition | O‘sha brauzer imkoniyati; fon rejimidagi uyg‘otish yo‘q |
+| Bilim va integratsiyalar | Arxitektura tavsifi | RAG, tashqi xizmatlarga amallar va ko‘p foydalanuvchi hali yo‘q |
 
-## Chegaralar
+Agent yozma natijani `.txt` faylida beradi. U reklamani nashr qilmaydi, xabar yubormaydi, byudjet sarflamaydi va vazifani o‘zi qabul qilmaydi. Marketing bo‘yicha joriy bozor faktlari manbasiz tekshirilgan deb aytilmasligi kerak; web qidiruv vositasi hali ulanmagan.
 
-Bu versiya statik HTML/CSS/JavaScript prototipidir. AI modeli, server bazasi, haqiqiy agent ijrosi, ko‘p qurilmali sinxronlash, doimiy ovozli uyg‘otish va tashqi xizmatlarga amallar ulanmagan. Topshiriq bosqichlari qo‘lda o‘zgartiriladi. Brauzer ma’lumotlarini o‘chirish yoki boshqa qurilmaga o‘tish saqlangan namuna ishlarni yo‘qotishi mumkin.
+## Ishlab chiqish
 
-## Ishga tushirish
+Python 3.12 bilan `pip install -r backend/requirements.txt`, so‘ng `uvicorn backend.server:app --reload`. `DODA_DB_PATH`, `DODA_FILES_PATH`, `DODA_PUBLIC_ORIGIN`, `DODA_PASSWORD_HASH`, `DODA_SESSION_SECRET`, `DODA_MODEL` va `OPENAI_API_KEY` server muhiti orqali beriladi. Maxfiy qiymatlarni gitga kiritmang. Parol hashini `python -m backend.server hash-password` bilan yarating. API va sayt bir domen ostida `/api/*` orqali xizmat qilishi kerak.
 
-`index.html` faylini brauzerda oching yoki katalogni oddiy statik web serverda xizmat qildiring. Serverda joylashtirishda shu katalogni saytning web ildizi sifatida tanlang; `index.html` asosiy sahifa bo‘ladi. HTTPS ishlating, ayniqsa mikrofon sinovi uchun.
+`python -m unittest backend.test_server -v` backendning xususiy ma’lumot, fayl, topshiriq, tasdiq va xatolik holatlarini tekshiradi. `node --check app.js` frontend sintaksisini tekshiradi.
 
-## Fayllar
-
-- `index.html` — sahifalar va matnlar.
-- `app.css` — adaptiv dizayn va animatsiyalar.
-- `app.js` — prototip interaksiyalari va brauzer ichidagi saqlash.
-
-Ushbu repozitoriy [jonli prototip](https://doda-agent-prototip-2026.khikmatulloturaev.chatgpt.site) manbasi uchun mo‘ljallangan. GitHubga joylash o‘zi bilan yangi hosting yoki serverga joylashtirishni anglatmaydi.
+Serverga qo‘yish bo‘yicha [yo‘riqnoma](docs/DEPLOY_CORE.md). Hozirgi statik saytni shu tarmoq tayyor va maxfiy muhit qiymatlari sozlanmaguncha almashtirmang.
