@@ -58,7 +58,7 @@ function monthlySpend(db: import("../db.js").Db, userId: string, now: number): {
 chatRoutes.post("/chat", async (c) => {
   const { db, config, llm, limiter, now } = c.get("deps");
   const user = c.get("user")!;
-  if (!llm) return fail(c, 503, "llm_unavailable");
+  if (!llm) return fail(c, 503, "llm_not_configured");
   if (!limiter.take(`chat:${user.id}`, 20, MIN)) return fail(c, 429, "too_many_requests");
 
   const body = chatSchema.safeParse(await c.req.json().catch(() => null));
@@ -130,7 +130,7 @@ chatRoutes.post("/chat", async (c) => {
           await stream.writeSSE({ event: "meta", data: JSON.stringify({ conversationId, model, tier: "light", fallback: true }) });
           continue;
         }
-        const code = status === 429 ? "llm_rate_limited" : "llm_unavailable";
+        const code = status === 429 ? "llm_rate_limited" : status === 400 || status === 401 || status === 403 ? "llm_auth" : "llm_unavailable";
         await stream.writeSSE({ event: "error", data: JSON.stringify({ code, message: t(code, locale) }) });
         break;
       }

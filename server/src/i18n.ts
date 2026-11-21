@@ -41,6 +41,8 @@ const messages = {
     uz: "Google so‘rovlar chegarasiga yetildi (bepul rejim). Bir daqiqadan keyin qayta urinib ko‘ring.",
     ru: "Достигнут лимит запросов Google (бесплатный режим). Повторите через минуту.",
   },
+  llm_not_configured: { uz: "AI kaliti serverda sozlanmagan. Administrator GEMINI_API_KEY ni qo‘shishi kerak.", ru: "Ключ ИИ не настроен на сервере. Администратору нужно добавить GEMINI_API_KEY." },
+  llm_auth: { uz: "Google AI kalitni yoki hududni qabul qilmadi. Administrator serverda diagnostikani ishga tushirishi kerak.", ru: "Google ИИ не принял ключ или регион. Администратору нужно запустить диагностику на сервере." },
   llm_empty: {
     uz: "Model bu so‘rovga javob qaytarmadi. Savolni boshqacha ifodalab ko‘ring.",
     ru: "Модель не вернула ответ на этот запрос. Попробуйте переформулировать вопрос.",

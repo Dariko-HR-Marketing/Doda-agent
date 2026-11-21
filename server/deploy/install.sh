@@ -238,6 +238,12 @@ else
   fi
 fi
 
+say "AI aloqasini tekshirish (Gemini)"
+if ((DRY)); then note "(dry-run) AI tekshiruvi o'tkazilmaydi"
+else
+  docker exec "$SVC" node dist/diagnose.js 2>&1 | sed 's/^/  /' || true
+fi
+
 cat <<EOF
 
 Tayyor. Orqaga qaytarish kerak bo'lsa (boshqa xizmatlarga ta'sir qilmaydi):

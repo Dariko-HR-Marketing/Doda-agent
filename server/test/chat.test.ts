@@ -313,6 +313,20 @@ describe("xatolar", () => {
     expect(db.prepare("SELECT COUNT(*) c FROM usage").get()).toEqual({ c: 0 });
   });
 
+  it("kalit/hudud xatosi (403): 'llm_auth', kalit yo'q bo'lsa 'llm_not_configured'", async () => {
+    behavior = async function* () {
+      throw new LlmHttpError(403);
+    };
+    const cookie = await signup("a@example.com");
+    const { events } = await chat(cookie, "salom");
+    expect(events[1]!.data.code).toBe("llm_auth");
+    build({}, null);
+    const c2 = await signup("b@example.com");
+    const res = await json("/api/chat", { message: "salom" }, { cookie: c2 });
+    expect(res.status).toBe(503);
+    expect((await res.json()).error.code).toBe("llm_not_configured");
+  });
+
   it("bo'sh javob: 'llm_empty' xatosi, sarf yozilmaydi", async () => {
     behavior = async function* () {
       yield { type: "usage", tokensIn: 10, tokensOut: 0 };
