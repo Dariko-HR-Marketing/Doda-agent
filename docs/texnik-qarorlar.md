@@ -24,3 +24,5 @@
 - Google OAuth: Google Cloud'da Client ID/Secret kerak.
 - Ovoz yozuvi biometrik hisoblanishi mumkin: yurist bilan aniqlash.
 | 16 | Vazifalar (4-bosqich) | `tasks`, `task_stages`, `task_items` jadvallari; maqsad, 5 bosqich, checklist, holat (faol/bajarilgan/arxiv). DODA maqsaddan reja tuzadi (asosiy model, JSON, sarf `usage` ga yoziladi, 6 so'rov/10 daqiqa). Hamma so'rov egasi bo'yicha filtrlangan. |
+| 17 | Agentlar (5-bosqich) | `agents`, `agent_runs`. 5 shablon (HR, marketing, IT, sotuv, tahlilchi) + o'z agentingiz. Oqim: foydalanuvchi topshirig'i + (ixtiyoriy) vazifa pasporti = brief -> agent (faqat brief va o'z ko'rsatmasi, suhbat/xotira berilmaydi) -> DODA tekshiradi (arzon model, JSON: ok/needs_work). Asosiy model yiqilsa arzon modelga o'tadi. 20 agent, 10 topshiriq/10 daqiqa, oxirgi 50 natija saqlanadi. |
+| 18 | Chatda zaxira model | Asosiy model (3.8 Flash) xato bersa va matn kelmagan bo'lsa, chat arzon modelga (3.5 Flash-Lite) o'tadi; xato holati va status serverda loglanadi. |

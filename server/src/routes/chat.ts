@@ -89,7 +89,7 @@ chatRoutes.post("/chat", async (c) => {
   const history = normalizeHistory(rows.reverse());
 
   const tier = body.data.tier === "auto" ? pickTier(message, rows.length) : body.data.tier;
-  const model = tier === "light" ? config.GEMINI_MODEL_LIGHT : config.GEMINI_MODEL_MAIN;
+  const wanted = tier === "light" ? config.GEMINI_MODEL_LIGHT : config.GEMINI_MODEL_MAIN;
   const locale = user.locale;
   if (user.memoryEnabled) ensureDefaults(db, user.id, now());
   const system = systemPrompt(locale) + (user.memoryEnabled ? loadMemoryContext(db, user.id) : "");
@@ -103,24 +103,36 @@ chatRoutes.post("/chat", async (c) => {
     let gotUsage = false;
     let failed = false;
 
+    let model = wanted;
     await stream.writeSSE({ event: "meta", data: JSON.stringify({ conversationId, model, tier }) });
-    try {
-      for await (const ev of llm.stream({ model, system, messages: history, signal: controller.signal })) {
-        if (ev.type === "delta") {
-          text += ev.text;
-          await stream.writeSSE({ event: "delta", data: JSON.stringify({ text: ev.text }) });
-        } else {
-          tokensIn = ev.tokensIn;
-          tokensOut = ev.tokensOut;
-          gotUsage = true;
+    // Asosiy model xato bersa (band, bepul rejimda yopiq va h.k.) va hali matn kelmagan bo'lsa, arzon modelga o'tamiz
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        for await (const ev of llm.stream({ model, system, messages: history, signal: controller.signal })) {
+          if (ev.type === "delta") {
+            text += ev.text;
+            await stream.writeSSE({ event: "delta", data: JSON.stringify({ text: ev.text }) });
+          } else {
+            tokensIn = ev.tokensIn;
+            tokensOut = ev.tokensOut;
+            gotUsage = true;
+          }
         }
-      }
-    } catch (e) {
-      failed = true;
-      if (!controller.signal.aborted) {
-        console.error("[chat] model xatosi:", e instanceof Error ? e.message.slice(0, 200) : "noma'lum");
-        const code = e instanceof LlmHttpError && e.status === 429 ? "llm_rate_limited" : "llm_unavailable";
+        failed = false;
+        break;
+      } catch (e) {
+        failed = true;
+        if (controller.signal.aborted) break;
+        const status = e instanceof LlmHttpError ? e.status : 0;
+        console.error(`[chat] model xatosi (${model}, status ${status}):`, e instanceof Error ? e.message.slice(0, 200) : "noma'lum");
+        if (attempt === 0 && text.length === 0 && model !== config.GEMINI_MODEL_LIGHT) {
+          model = config.GEMINI_MODEL_LIGHT;
+          await stream.writeSSE({ event: "meta", data: JSON.stringify({ conversationId, model, tier: "light", fallback: true }) });
+          continue;
+        }
+        const code = status === 429 ? "llm_rate_limited" : "llm_unavailable";
         await stream.writeSSE({ event: "error", data: JSON.stringify({ code, message: t(code, locale) }) });
+        break;
       }
     }
 

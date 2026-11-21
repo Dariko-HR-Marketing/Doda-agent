@@ -57,6 +57,8 @@ const messages = {
     ru: "Файл изменился после того, как вы его открыли (например, записал DODA). Откройте файл заново и повторите правку.",
   },
   too_many_tasks: { uz: "Vazifalar soni chegarasiga yetildi (100 ta). Eskilarini arxivlang yoki o‘chiring.", ru: "Достигнут лимит задач (100). Архивируйте или удалите старые." },
+  too_many_agents: { uz: "Agentlar soni chegarasiga yetildi (20 ta). Keraksizini o‘chiring.", ru: "Достигнут лимит агентов (20). Удалите ненужных." },
+  agent_empty: { uz: "Agent bo‘sh javob qaytardi. Topshiriqni aniqroq yozib, qayta urinib ko‘ring.", ru: "Агент вернул пустой ответ. Уточните задание и повторите." },
   plan_failed: { uz: "Reja tuzib bo‘lmadi. Maqsadni aniqroq yozib, qayta urinib ko‘ring.", ru: "Не удалось составить план. Опишите цель точнее и повторите." },
   not_found: { uz: "Topilmadi.", ru: "Не найдено." },
   server_error: { uz: "Ichki xatolik.", ru: "Внутренняя ошибка." },

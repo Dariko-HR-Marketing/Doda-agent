@@ -273,6 +273,22 @@ describe("xatolar", () => {
     expect(db.prepare("SELECT COUNT(*) c FROM usage").get()).toEqual({ c: 0 });
   });
 
+  it("asosiy model yiqilsa arzon modelga o'tadi (zaxira), sarf haqiqiy modelga yoziladi", async () => {
+    behavior = (c) =>
+      c.model === "gemini-3.8-flash"
+        ? (async function* () {
+            throw new LlmHttpError(503);
+          })()
+        : ok(["Zaxira ", "javobi"])(c);
+    const cookie = await signup("a@example.com");
+    const res = await json("/api/chat", { message: "salom", tier: "main" }, { cookie });
+    const txt = await res.text();
+    expect(txt).toContain("Zaxira ");
+    expect(txt).not.toContain("event: error");
+    expect(calls.map((x) => x.model)).toEqual(["gemini-3.8-flash", "gemini-3.5-flash-lite"]);
+    expect(db.prepare("SELECT model FROM messages WHERE role='assistant'").get()).toEqual({ model: "gemini-3.5-flash-lite" });
+  });
+
   it("javob o'rtasida uzilsa, kelgan qismi saqlanadi va xato bildiriladi", async () => {
     behavior = async function* () {
       yield { type: "delta", text: "Yarim" };

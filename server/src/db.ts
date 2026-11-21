@@ -145,6 +145,33 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (task_id, stage)
   );
   `,
+  `
+  CREATE TABLE agents (
+    id           TEXT PRIMARY KEY,
+    user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    template     TEXT,
+    name         TEXT NOT NULL,
+    role         TEXT NOT NULL,
+    instructions TEXT NOT NULL,
+    created_at   INTEGER NOT NULL
+  );
+  CREATE INDEX agents_user ON agents(user_id, created_at);
+  CREATE TABLE agent_runs (
+    id         TEXT PRIMARY KEY,
+    agent_id   TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    task_id    TEXT,
+    request    TEXT NOT NULL,
+    brief      TEXT NOT NULL,
+    result     TEXT NOT NULL,
+    verdict    TEXT NOT NULL CHECK (verdict IN ('ok','needs_work','unchecked')),
+    review     TEXT NOT NULL DEFAULT '',
+    model      TEXT NOT NULL,
+    cost_usd   REAL NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX agent_runs_agent ON agent_runs(agent_id, created_at);
+  `,
 ];
 
 export function openDb(path: string): Db {

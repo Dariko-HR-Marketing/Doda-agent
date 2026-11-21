@@ -9,7 +9,7 @@
   const T = {
     uz: {
       placeholder: 'DODAga yozing yoki gapiring…', send: 'Yuborish', stop: 'To‘xtatish', mic: 'Ovozli kiritish', micStop: 'Tinglashni to‘xtatish',
-      tasksT: 'Vazifalar', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
+      tasksT: 'Vazifalar', agentsT: 'Agentlar', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
       today: 'Bugun', yesterday: 'Kecha', week: 'Oxirgi 7 kun', older: 'Oldinroq', rename: 'Nomini o‘zgartirish', del: 'O‘chirish', delSure: 'Aniq o‘chiraman', more: 'Amallar',
       account: 'Akkaunt', language: 'Til', logout: 'Chiqish', sbOpen: 'Panelni ochish', sbClose: 'Panelni yopish',
       morning: 'Xayrli tong', day: 'Xayrli kun', evening: 'Xayrli kech', night: 'Xayrli tun', ask: 'Nima haqida gaplashamiz?',
@@ -28,7 +28,7 @@
     },
     ru: {
       placeholder: 'Напишите DODA или скажите…', send: 'Отправить', stop: 'Остановить', mic: 'Голосовой ввод', micStop: 'Остановить запись',
-      tasksT: 'Задачи', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
+      tasksT: 'Задачи', agentsT: 'Агенты', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
       today: 'Сегодня', yesterday: 'Вчера', week: 'Последние 7 дней', older: 'Ранее', rename: 'Переименовать', del: 'Удалить', delSure: 'Точно удалить', more: 'Действия',
       account: 'Аккаунт', language: 'Язык', logout: 'Выйти', sbOpen: 'Открыть панель', sbClose: 'Закрыть панель',
       morning: 'Доброе утро', day: 'Добрый день', evening: 'Добрый вечер', night: 'Доброй ночи', ask: 'О чём поговорим?',
@@ -80,6 +80,7 @@
     search: ['M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M20 20l-4-4'],
     folder: ['M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'],
     x: ['M6 6l12 12', 'M18 6L6 18'],
+    agents: ['M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M5 22v-3a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v3', 'M9 11h.01', 'M15 11h.01'],
     tasks: ['M4 6l2 2 3-3', 'M12 7h8', 'M4 14l2 2 3-3', 'M12 15h8'],
     copy: ['M9 9h10v10H9z', 'M5 15V5h10'],
     check: ['M5 12l5 5 9-10'],
@@ -183,6 +184,7 @@
     ui.rowNew = h('button', { type: 'button', class: 'sb-row', onclick: newChat }, svg(IC.plus, 18), h('span'));
     ui.rowSearch = h('button', { type: 'button', class: 'sb-row', onclick: toggleSearch }, svg(IC.search, 18), h('span'));
     ui.rowTasks = h('button', { type: 'button', class: 'sb-row', onclick: () => { if (isMobile()) setSidebar(false); openOverlay('tasks'); } }, svg(IC.tasks, 18), h('span'));
+    ui.rowAgents = h('button', { type: 'button', class: 'sb-row', onclick: () => { if (isMobile()) setSidebar(false); openOverlay('agents'); } }, svg(IC.agents, 18), h('span'));
     ui.rowFiles = h('button', { type: 'button', class: 'sb-row', onclick: () => { if (isMobile()) setSidebar(false); openOverlay('files'); } }, svg(IC.folder, 18), h('span'));
     ui.search = h('input', { type: 'search', class: 'sb-search', hidden: true, autocomplete: 'off', oninput: (e) => { query = e.target.value.trim().toLowerCase(); renderList(); } });
     ui.list = h('div', { class: 'sb-list' });
@@ -190,7 +192,7 @@
       h('span', { class: 'sb-avatar', 'aria-hidden': 'true' }, initials()), h('span', { class: 'sb-uname' }, firstName() || '—'), svg(IC.chevron, 16));
     ui.sb = h('aside', { class: 'sb', 'aria-label': 'DODA' },
       h('div', { class: 'sb-head' }, ui.brand, ui.sbClose),
-      h('nav', { class: 'sb-nav' }, ui.rowNew, ui.rowSearch, ui.rowTasks, ui.rowFiles),
+      h('nav', { class: 'sb-nav' }, ui.rowNew, ui.rowSearch, ui.rowTasks, ui.rowAgents, ui.rowFiles),
       ui.search, ui.list, h('div', { class: 'sb-foot' }, ui.userBtn));
     ui.backdrop = h('div', { class: 'sb-backdrop', onclick: () => setSidebar(false) });
 
@@ -282,6 +284,7 @@
     ui.rowNew.lastChild.textContent = tr('newChat');
     ui.rowSearch.lastChild.textContent = tr('search');
     ui.rowTasks.lastChild.textContent = tr('tasksT');
+    ui.rowAgents.lastChild.textContent = tr('agentsT');
     ui.rowFiles.lastChild.textContent = tr('files');
     ui.search.placeholder = tr('searchPh');
     ui.search.setAttribute('aria-label', tr('searchPh'));
@@ -694,11 +697,11 @@
   }
 
   /* ---------- fayllar (ishchi maydon) ---------- */
-  const OVERLAYS = { files: () => window.DODA_WS, tasks: () => window.DODA_TASKS };
+  const OVERLAYS = { files: () => window.DODA_WS, tasks: () => window.DODA_TASKS, agents: () => window.DODA_AGENTS };
   function openOverlay(kind) {
     const mod = OVERLAYS[kind] && OVERLAYS[kind]();
     if (files || !mod) return;
-    const title = kind === 'tasks' ? tr('tasksT') : tr('files');
+    const title = kind === 'tasks' ? tr('tasksT') : kind === 'agents' ? tr('agentsT') : tr('files');
     const body = h('div', { class: 'min-files-body' });
     files = h('div', { class: 'min-files', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'min-files-head' }, h('b', {}, title), h('button', { type: 'button', class: 'min-icon', 'aria-label': 'Yopish', onclick: () => closeFiles() }, svg(IC.x))), body);

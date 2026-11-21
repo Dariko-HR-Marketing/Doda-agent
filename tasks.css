@@ -8,7 +8,7 @@
 .tk-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.tk-row.end{margin-top:6px}
 .tk-btn{min-height:42px;padding:0 18px;border:1px solid #356a7d;border-radius:12px;background:#0f2c3c;color:#e3f1f5;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
 .tk-btn:hover:not(:disabled){background:#14394d}.tk-btn:disabled{opacity:.55;cursor:default}
-.tk-btn.primary{border:0;background:linear-gradient(135deg,#6af08a,#27c07a);color:#052c1f}
+.tk-btn.primary,.tk-btn.primary:hover:not(:disabled){border:0;background:linear-gradient(135deg,#6af08a,#27c07a);color:#052c1f}
 .tk-btn.danger{color:#ffb3bd;border-color:#6b3340}
 .tk-msg{min-height:18px;margin-top:8px;color:#ffc5cd;font-size:13px}
 .tk-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
@@ -39,3 +39,22 @@
 .tk button:focus-visible{outline:2px solid #8df5a2;outline-offset:2px}
 @media (max-width:600px){.tk-title{font-size:20px}.tk-x{opacity:1}}
 @media (prefers-reduced-motion:reduce){.tk-bar i{transition:none}}
+
+/* agentlar */
+.ag-in{box-sizing:border-box;min-height:42px;padding:0 12px;border:1px solid #28495b;border-radius:12px;background:#0a2231;color:#eefafc;font:inherit;font-size:14px;max-width:100%}
+.ag-in:focus{outline:0;border-color:#4fdc7c}
+.ag-custom{padding:12px 14px;background:#0b2233;border:1px solid #1f4252;border-radius:14px;display:grid;gap:10px}
+.ag-custom summary{cursor:pointer;font-weight:700}
+.ag-custom[open] summary{margin-bottom:6px}
+.ag-segs{display:inline-flex;padding:2px;border:1px solid #234a5d;border-radius:12px;background:#071c2b}
+.ag-seg{min-height:38px;padding:0 14px;border:0;border-radius:10px;background:transparent;color:#9dbbc4;font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
+.ag-seg.on{background:#1c4b5a;color:#fff}
+.ag-runs{display:grid;gap:12px}
+.ag-run{padding:14px;background:#0b2233;border:1px solid #1f4252;border-radius:16px;display:grid;gap:10px}
+.ag-run-q{font-size:13.5px;color:#8fb2bb;overflow-wrap:anywhere}
+.ag-run-r{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:15px;line-height:1.65;color:#e8f4f7}
+.ag-run-m{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.ag-badge{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:800;background:#16364a;color:#a9c3ca}
+.ag-badge.ok{background:#12452f;color:#7be8a0}.ag-badge.needs_work{background:#4a3a12;color:#ffd878}
+.tk-btn.small{min-height:34px;padding:0 12px;font-size:13px}
+.tk select.ag-in{min-width:0;flex:1 1 180px}
