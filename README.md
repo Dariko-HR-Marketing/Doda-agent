@@ -29,7 +29,6 @@ Bu repozitoriy loyihaning yagona manbasi: barcha kod va dizayn o‘zgarishlari s
 ## Deploy
 
 - Jonli sayt: https://doda.tajriba24.uz
-- Server: VPS (Ubuntu 24.04), Nginx, HTTPS (Let's Encrypt).
-- `main` tarmog'iga push qilinganda `.github/workflows/deploy.yml` fayllarni serverga yuboradi.
-- GitHub Secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`.
-- Serverni birinchi marta sozlash: `deploy/server-setup.sh`.
+- Hosting: GitHub Pages (VPS ishlatilmaydi, boshqa loyihalarga ta'sir qilmaydi).
+- `main` tarmog'iga push qilinganda `.github/workflows/deploy.yml` saytni avtomat joylaydi.
+- Domen: Eskiz DNS'da `doda` uchun `CNAME → dariko-hr-marketing.github.io.`
