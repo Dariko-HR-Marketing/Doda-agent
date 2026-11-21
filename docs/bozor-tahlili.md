@@ -84,3 +84,42 @@ Ogohlantirish: har bir sotuvchi benchmark'da o'zini oldinda ko'rsatadi, mustaqil
 - Ko'p agentli tizimlarda xato zanjiri: DODA tekshiruvi va testlar shart.
 - 2 GB VPS: baza va backend xotira limiti bilan ishlashi kerak.
 - Raqobat: katta kompaniyalar mahalliy tillarni qo'shishi mumkin, shuning uchun tezlik va mahalliy ustunlik muhim.
+
+## 6. API narxlari (rasmiy sahifalar, 2026-noyabr; USD, 1 million token uchun)
+
+| Model | Kirish | Chiqish | Keshdan o'qish | Izoh |
+|---|---|---|---|---|
+| Claude Haiku 5.5 | 0.10 | 0.50 | 0.01 | Yo'naltirish, ajratish; 100K tokendan uzun so'rovda 5x qimmat |
+| Claude Sonnet 5.5 | 2 | 10 | 0.10 | Asosiy ish uchun |
+| Claude Opus 5.5 | 4 | 20 | 0.20 | Murakkab ishlar |
+| Claude Fable 5.2 | 8 | 40 | 0.20 | Eng kuchli |
+| GPT-6 Luna (OpenAI) | 0.10 | 0.50 | 0.01 | Eng tejamkor |
+| GPT-6.1 Terra | 1 | 5 | 0.05 | |
+| GPT-6.2 Sol | 2 | 10 | 0.10 | |
+| GPT-6.2 Astra | 8 | 40 | 0.40 | Eng kuchli |
+| Gemini 3.5 Flash-Lite | 0.30 | 2.50 | 0.03 | |
+| Gemini 3.8 Flash | 0.75 | 3.75 | 0.075 | **2027-yil 1-yanvardan 1.50 / 7.50** |
+| Gemini 4 Hydrogen | 1.50 | 7.50 | 0.075 | Bepul daraja bor |
+| Gemini 4 Carbon/Argon | 2.00 | 10.00 | 0.10 | Dekabrdan 4 / 20; faqat pullik |
+
+Chegirmalar: Batch (asinxron) 50%. Keshlash: Claude'da keshdan o'qish bazaviy kirish narxining 0.05x-0.1x. Veb-qidiruv: Claude va OpenAI 10$/1000 so'rov, Gemini 5000 bepul/oy, keyin 14$/1000.
+Ovoz: OpenAI GPT-Transcribe ~0.0045$/daq, Live-Transcribe 0.017$/daq. Gemini 3.5 Transcribe ~0.005$/daq.
+
+Muhim:
+- Obunalar (ChatGPT Plus, Claude Pro, Gemini) API'ni **o'z ichiga olmaydi**. OpenAI FAQ'da buni aniq yozgan. API alohida hisob va to'lov.
+- Gemini bepul darajasida kontent Google mahsulotlarini yaxshilash uchun ishlatiladi. Pullik darajada yo'q.
+- Claude 4.7 va keyingi modellar eski tokenizerdan ~30% ko'proq token hosil qiladi. O'zbek/rus matni odatda inglizchadan ko'proq token oladi (taxminiy, o'lchash kerak).
+
+### Taxminiy oylik xarajat (bitta faol foydalanuvchi)
+Faraz: oyiga 900 oddiy suhbat (4K kirish / 0.6K chiqish) + 60 murakkab topshiriq (30K kirish / 4K chiqish), keshsiz.
+
+| Faqat shu model | Oyiga |
+|---|---|
+| Claude Haiku 5.5 yoki GPT-6 Luna | ~$0.9 |
+| Gemini 3.5 Flash-Lite | ~$3.6 |
+| Gemini 3.8 Flash (hozir / 2027) | ~$7 / ~$14 |
+| GPT-6.1 Terra | ~$9 |
+| Claude Sonnet 5.5 yoki GPT-6.2 Sol | ~$19 |
+| Claude Opus 5.5 | ~$37 |
+
+Aralash yo'naltirish (oddiy ishlar arzon modelda, murakkab ishlar kuchlisida) odatda $3-8 atrofida bo'ladi. Bu faraz, haqiqiy sarfni 1-2 haftalik ishlatishdan o'lchaymiz.
