@@ -24,4 +24,4 @@ Bu versiya statik HTML/CSS/JavaScript prototipidir. AI modeli, server bazasi, ha
 - `app.css` — adaptiv dizayn va animatsiyalar.
 - `app.js` — prototip interaksiyalari va brauzer ichidagi saqlash.
 
-Ushbu repozitoriy [jonli prototip](https://doda-agent-prototip-2026.khikmatulloturaev.chatgpt.site) manbasi uchun mo‘ljallangan. GitHubga joylash o‘zi bilan yangi hosting yoki serverga joylashtirishni anglatmaydi.
+Bu repozitoriy loyihaning yagona manbasi: barcha kod va dizayn o‘zgarishlari shu yerda, Claude Code orqali amalga oshiriladi. `main` tarmog‘iga tushgan o‘zgarishlar avtomatik deploy qilinadi.
