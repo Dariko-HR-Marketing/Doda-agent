@@ -248,21 +248,6 @@ class DodaTests(unittest.TestCase):
         for _ in range(5):
             self.assertEqual(self.client.post("/api/auth/verify", json={"email": "owner@example.com", "code": wrong}).status_code, 401)
         self.assertEqual(self.client.post("/api/auth/verify", json={"email": "owner@example.com", "code": code}).status_code, 401)
-
-    def test_expired_code_and_mail_failure_do_not_open_session(self):
-        with patch.object(self.server, "send_login_code") as sender:
-            self.assertEqual(self.client.post("/api/auth/request", json={"email": "owner@example.com"}).status_code, 200)
-        code = sender.call_args.args[1]
-        with self.server.db() as con:
-            con.execute("UPDATE login_codes SET expires_at=0 WHERE email=?", ("owner@example.com",))
-        self.assertEqual(self.client.post("/api/auth/verify", json={"email": "owner@example.com", "code": code}).status_code, 401)
-        with self.server.db() as con:
-            con.execute("DELETE FROM login_codes WHERE email=?", ("owner@example.com",))
-        with patch.object(self.server, "send_login_code", side_effect=self.server.HTTPException(503, "Pochta ishlamadi")):
-            self.assertEqual(self.client.post("/api/auth/request", json={"email": "owner@example.com"}).status_code, 503)
-        with self.server.db() as con:
-            self.assertIsNone(con.execute("SELECT 1 FROM login_codes WHERE email=?", ("owner@example.com",)).fetchone())
-        self.assertEqual(self.client.get("/api/me").status_code, 401)
         with self.server.db() as con:
             con.execute("DELETE FROM login_codes WHERE email=?", ("owner@example.com",))
         self.login()
@@ -285,6 +270,31 @@ class DodaTests(unittest.TestCase):
             self.assertEqual(staff.post("/api/logout").status_code, 200)
             self.assertEqual(staff.get("/api/me").status_code, 401)
         self.assertEqual(self.client.post("/api/auth/verify", json={"email": "owner@example.com", "code": code}).status_code, 401)
+
+    def test_expired_code_and_mail_failure_do_not_open_session(self):
+        with patch.object(self.server, "send_login_code") as sender:
+            self.assertEqual(self.client.post("/api/auth/request", json={"email": "owner@example.com"}).status_code, 200)
+        code = sender.call_args.args[1]
+        with self.server.db() as con:
+            con.execute("UPDATE login_codes SET expires_at=0 WHERE email=?", ("owner@example.com",))
+        self.assertEqual(self.client.post("/api/auth/verify", json={"email": "owner@example.com", "code": code}).status_code, 401)
+        with self.server.db() as con:
+            con.execute("DELETE FROM login_codes WHERE email=?", ("owner@example.com",))
+        with patch.object(self.server, "send_login_code", side_effect=self.server.HTTPException(503, "Pochta ishlamadi")):
+            self.assertEqual(self.client.post("/api/auth/request", json={"email": "owner@example.com"}).status_code, 200)
+        with self.server.db() as con:
+            self.assertIsNone(con.execute("SELECT 1 FROM login_codes WHERE email=?", ("owner@example.com",)).fetchone())
+        self.assertEqual(self.client.get("/api/me").status_code, 401)
+
+    def test_owner_email_change_revokes_previous_owner(self):
+        self.login()
+        self.assertEqual(self.client.get("/api/me").status_code, 200)
+        with patch.dict(os.environ, {"DODA_OWNER_EMAIL": "new-owner@example.com"}):
+            self.server.init()
+            self.assertEqual(self.client.get("/api/me").status_code, 401)
+            with self.server.db() as con:
+                self.assertIsNone(con.execute("SELECT 1 FROM members WHERE email=?", ("owner@example.com",)).fetchone())
+        self.server.init()
 
 
 if __name__ == "__main__":

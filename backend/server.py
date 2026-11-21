@@ -5,6 +5,7 @@ import binascii
 import hashlib
 import hmac
 import json
+import logging
 import mimetypes
 import os
 import re
@@ -79,7 +80,12 @@ def init():
         """)
         owner = os.getenv("DODA_OWNER_EMAIL", "").strip().lower()
         if owner:
-            con.execute("INSERT OR IGNORE INTO members(email,name,role) VALUES (?,?,?)",
+            for previous in con.execute("SELECT email FROM members WHERE role='owner' AND email<>?", (owner,)).fetchall():
+                con.execute("DELETE FROM sessions WHERE email=?", (previous["email"],))
+                con.execute("DELETE FROM login_codes WHERE email=?", (previous["email"],))
+                con.execute("DELETE FROM members WHERE email=?", (previous["email"],))
+            con.execute("INSERT INTO members(email,name,role) VALUES (?,?,?) "
+                        "ON CONFLICT(email) DO UPDATE SET role='owner'",
                         (owner, os.getenv("DODA_OWNER_NAME", "Kapitan"), "owner"))
 
 
@@ -190,7 +196,7 @@ def request_code(body: EmailRequest, request: Request):
         except HTTPException:
             with db() as con:
                 con.execute("DELETE FROM login_codes WHERE email=? AND code_hash=?", (email, digest))
-            raise
+            logging.warning("DODA email delivery failed; code invalidated")
     return {"message": "Agar manzilga ruxsat berilgan bo‘lsa, kirish kodi yuborildi"}
 
 

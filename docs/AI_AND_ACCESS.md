@@ -21,12 +21,12 @@ Katalog har bir kalit orqali ko‘rinadigan model IDlarini ko‘rsatadi. Bu hamm
 ## 3. Elektron pochta va sessiya
 
 1. Tashkilot egasi emaili serverda oldindan belgilanadi. Egasi boshqa a’zolarni kabinetda ro‘yxatga qo‘shadi.
-2. Kiruvchi emailini yuboradi. Tizim ruxsatli va noma’lum manzilga bir xil javob qaytaradi; noma’lum manzilga xat yubormaydi.
+2. Kiruvchi emailini yuboradi. Tizim ruxsatli va noma’lum manzilga bir xil shartli javob qaytaradi; noma’lum manzilga xat yubormaydi. Yetkazish xatosida ham umumiy javob qoladi, kod bekor qilinadi va xato server jurnalida qayd etiladi.
 3. Ruxsatli manzilga SMTP TLS orqali 8 xonali tasodifiy kod yuboriladi. Kod 10 daqiqa amal qiladi, 5 xato urinishdan so‘ng yaroqsiz, tasdiqlangach o‘chiriladi. Qayta yuborish 60 soniya ichida cheklanadi.
 4. Tasdiqdan keyin server bazada qaytarib olinadigan sessiya yaratadi. Browser faqat `HttpOnly`, `Secure`, `SameSite=Strict`, `__Host-` cookie oladi. Chiqishda sessiya bekor qilinadi. Session va API kalitlari localStorage’da saqlanmaydi.
 5. Profil tashkilot nomi, tasdiqlangan email, ism va rolni ko‘rsatadi. Egasi a’zolar ro‘yxatini ko‘radi va email qo‘shadi. A’zolar umumiy kabinetga kiradi; tashkilotlararo ajratish bu versiyada yo‘q.
 
-**Pochta sozlamalari:** `DODA_SMTP_HOST`, `DODA_SMTP_PORT`, `DODA_SMTP_SECURITY=starttls` yoki `ssl`, `DODA_SMTP_FROM`, ixtiyoriy `DODA_SMTP_USER`/`DODA_SMTP_PASSWORD`. Pochta xizmati ishlamasa, kod berilgan deb ko‘rsatmaydi. Email kodi bitta faktorli kirish; u alohida MFA emas. Korporativ foydalanishda SSO/Passkey va audit jurnalini keyin alohida baholash kerak.
+**Pochta sozlamalari:** `DODA_SMTP_HOST`, `DODA_SMTP_PORT`, `DODA_SMTP_SECURITY=starttls` yoki `ssl`, `DODA_SMTP_FROM`, ixtiyoriy `DODA_SMTP_USER`/`DODA_SMTP_PASSWORD`. Pochta xizmati ishlamasa, sessiya berilmaydi; umumiy javob manzil mavjudligini oshkor qilmaydi. Email kodi bitta faktorli kirish; u alohida MFA emas. Korporativ foydalanishda SSO/Passkey va audit jurnalini keyin alohida baholash kerak.
 
 ## 4. Qabul sinovi
 
