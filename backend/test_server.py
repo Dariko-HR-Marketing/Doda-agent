@@ -1,11 +1,15 @@
 """Integration checks for the private data boundary and durable task lifecycle."""
 
 import base64
+import asyncio
+import json
 import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
+
+import httpx
 
 from fastapi.testclient import TestClient
 
@@ -106,6 +110,66 @@ class DodaTests(unittest.TestCase):
         self.assertTrue(task["approved"])
         self.assertEqual(task["step"], 4)
         self.assertEqual(self.client.get(f"/api/files/{uploaded['id']}").content, b"old file")
+
+    def test_openai_first_then_gemini_on_temporary_failure(self):
+        self.login()
+        seen = []
+
+        def reply(request):
+            seen.append((request.url.host, json.loads(request.content), dict(request.headers)))
+            if request.url.host == "api.openai.com":
+                return httpx.Response(503, json={"error": "temporary"})
+            return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "Gemini javobi"}]}}]})
+
+        original_client = httpx.AsyncClient
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "private-openai", "DODA_MODEL": "example-openai",
+                                  "GEMINI_API_KEY": "private-gemini", "DODA_GEMINI_MODEL": "example-gemini",
+                                  "DODA_AI_ORDER": "openai,gemini"}), \
+             patch.object(self.server.httpx, "AsyncClient", side_effect=lambda **kw: original_client(
+                 transport=httpx.MockTransport(reply), **kw)):
+            status = self.client.get("/api/ai/status").json()
+            self.assertEqual(status["order"], ["openai", "gemini"])
+            self.assertTrue(all(status["configured"].values()))
+            response = self.client.post("/api/chat", json={"text": "Salom"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["reply"], "Gemini javobi")
+        self.assertEqual([item[0] for item in seen], ["api.openai.com", "generativelanguage.googleapis.com"])
+        self.assertEqual(seen[0][1]["input"][-1]["content"], "Salom")
+        self.assertEqual(seen[1][1]["contents"][-1]["parts"], [{"text": "Salom"}])
+        self.assertEqual(seen[1][1]["systemInstruction"]["parts"][0]["text"][:8], "Sen DODA")
+        self.assertEqual(seen[1][2]["x-goog-api-key"], "private-gemini")
+
+    def test_gemini_primary_pdf_and_no_fake_reply_on_failure(self):
+        requests = []
+
+        def reply(request):
+            requests.append(json.loads(request.content))
+            return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "PDF xulosasi"}]}}]})
+
+        original_client = httpx.AsyncClient
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-gemini", "DODA_GEMINI_MODEL": "example-gemini",
+                                  "DODA_AI_ORDER": "gemini"}), \
+             patch.object(self.server.httpx, "AsyncClient", side_effect=lambda **kw: original_client(
+                 transport=httpx.MockTransport(reply), **kw)):
+            answer = asyncio.run(self.server.ask_model("Tekshir", [{"role": "user", "content": [
+                {"type": "input_text", "text": "Tahlil"}, {"type": "input_file", "filename": "brief.pdf",
+                 "file_data": "data:application/pdf;base64," + base64.b64encode(b"%PDF-test").decode()}]}]))
+            self.assertEqual(answer, "PDF xulosasi")
+            self.assertEqual(requests[0]["contents"][0]["parts"][1]["inlineData"]["mimeType"], "application/pdf")
+            with self.assertRaises(self.server.HTTPException) as context:
+                asyncio.run(self.server.ask_model("Tekshir", [{"role": "user", "content": [
+                    {"type": "input_file", "filename": "brief.docx", "file_data": "data:application/zip;base64,YQ=="}]}]))
+            self.assertEqual(context.exception.status_code, 415)
+
+        self.login()
+        original_client = httpx.AsyncClient
+        with patch.dict(os.environ, {"DODA_AI_ORDER": "gemini", "GEMINI_API_KEY": "private-gemini",
+                                  "DODA_GEMINI_MODEL": "example-gemini"}), \
+             patch.object(self.server.httpx, "AsyncClient", side_effect=lambda **kw: original_client(
+                 transport=httpx.MockTransport(lambda _: httpx.Response(503)), **kw)):
+            before = len(self.client.get("/api/state").json()["messages"])
+            self.assertEqual(self.client.post("/api/chat", json={"text": "Xato sinovi"}).status_code, 502)
+            self.assertEqual(len(self.client.get("/api/state").json()["messages"]), before)
 
 
 if __name__ == "__main__":

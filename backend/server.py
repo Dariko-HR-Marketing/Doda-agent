@@ -315,26 +315,108 @@ class ChatInput(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
 
 
-async def ask_model(instructions: str, history: list[dict]):
-    key = os.getenv("OPENAI_API_KEY")
-    model = os.getenv("DODA_MODEL")
-    if not key or not model:
-        raise HTTPException(503, "AI ulanishi hali sozlanmagan")
+def provider_order():
+    order = [item.strip().lower() for item in os.getenv("DODA_AI_ORDER", "openai,gemini").split(",")]
+    if not order or len(order) != len(set(order)) or any(item not in ("openai", "gemini") for item in order):
+        raise HTTPException(503, "AI xizmatlari tartibi noto‘g‘ri sozlangan")
+    return order
+
+
+def provider_configured(provider):
+    if provider == "openai":
+        return bool(os.getenv("OPENAI_API_KEY") and os.getenv("DODA_MODEL"))
+    return bool(os.getenv("GEMINI_API_KEY") and os.getenv("DODA_GEMINI_MODEL"))
+
+
+@app.get("/api/ai/status")
+def ai_status(_=Depends(authenticated)):
+    return {"order": provider_order(), "configured": {name: provider_configured(name)
+            for name in ("openai", "gemini")}}
+
+
+def gemini_contents(history):
+    converted = []
+    for entry in history:
+        parts = []
+        contents = entry["content"] if isinstance(entry["content"], list) else [entry["content"]]
+        for item in contents:
+            if isinstance(item, str):
+                parts.append({"text": item})
+            elif item.get("type") == "input_text":
+                parts.append({"text": item["text"]})
+            elif item.get("type") == "input_file":
+                name = item.get("filename", "")
+                extension = Path(name).suffix.lower()
+                if extension not in (".pdf", ".txt", ".md", ".csv"):
+                    raise HTTPException(415, f"Gemini bu fayl turini qabul qilmaydi: {name}")
+                mime, encoded = item["file_data"].split(";base64,", 1)
+                if extension == ".pdf":
+                    parts.append({"inlineData": {"mimeType": "application/pdf", "data": encoded}})
+                else:
+                    parts.append({"text": f"Fayl {name}:\n" + base64.b64decode(encoded).decode("utf-8-sig")})
+            else:
+                raise HTTPException(415, "Gemini uchun noma’lum kontent")
+        converted.append({"role": "model" if entry["role"] == "assistant" else "user", "parts": parts})
+    return converted
+
+
+async def call_provider(provider, instructions, history):
+    key = os.environ["OPENAI_API_KEY" if provider == "openai" else "GEMINI_API_KEY"]
+    model = os.environ["DODA_MODEL" if provider == "openai" else "DODA_GEMINI_MODEL"]
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,100}", model):
+        raise HTTPException(503, f"{provider} model nomi noto‘g‘ri sozlangan")
+    if provider == "openai":
+        url = "https://api.openai.com/v1/responses"
+        headers = {"Authorization": f"Bearer {key}"}
+        payload = {"model": model, "instructions": instructions, "input": history,
+                   "store": False, "max_output_tokens": 1500}
+    else:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        headers = {"x-goog-api-key": key}
+        payload = {"systemInstruction": {"parts": [{"text": instructions}]},
+                   "contents": gemini_contents(history), "generationConfig": {"maxOutputTokens": 1500}}
     try:
         async with httpx.AsyncClient(timeout=90) as client:
-            res = await client.post("https://api.openai.com/v1/responses",
-                headers={"Authorization": f"Bearer {key}"},
-                json={"model": model, "instructions": instructions, "input": history, "store": False,
-                      "max_output_tokens": 1500})
+            res = await client.post(url, headers=headers, json=payload)
+            if res.status_code in (401, 403, 404):
+                raise HTTPException(503, f"{provider} kaliti yoki modeli tekshirilishi kerak")
+            if res.status_code == 400:
+                raise HTTPException(503, f"{provider} so‘rov yoki model sozlamasini tekshirish kerak")
             res.raise_for_status()
             data = res.json()
-        output = "\n".join(item.get("text", "") for entry in data.get("output", [])
-                           for item in entry.get("content", []) if item.get("type") == "output_text").strip()
+        if provider == "openai":
+            output = "\n".join(item.get("text", "") for entry in data.get("output", [])
+                               for item in entry.get("content", []) if item.get("type") == "output_text").strip()
+        else:
+            output = "\n".join(part.get("text", "") for candidate in data.get("candidates", [])[:1]
+                               for part in candidate.get("content", {}).get("parts", [])).strip()
         if not output:
             raise ValueError("Bo‘sh javob")
         return output
-    except (httpx.HTTPError, ValueError):
-        raise HTTPException(502, "AI xizmati vaqtincha javob bermadi")
+    except (httpx.HTTPError, ValueError, UnicodeError, binascii.Error):
+        raise HTTPException(502, f"{provider} vaqtincha javob bermadi")
+
+
+async def ask_model(instructions: str, history: list[dict]):
+    available = [name for name in provider_order() if provider_configured(name)]
+    if not available:
+        raise HTTPException(503, "AI ulanishi hali sozlanmagan")
+    has_office_file = any(isinstance(item, dict) and item.get("type") == "input_file" and
+                          Path(item.get("filename", "")).suffix.lower() not in (".pdf", ".txt", ".md", ".csv")
+                          for entry in history for item in (entry["content"] if isinstance(entry["content"], list) else []))
+    if has_office_file:
+        available = [name for name in available if name == "openai"]
+        if not available:
+            raise HTTPException(415, "Bu fayl turini tahlil qilish uchun OpenAI ulanishi kerak")
+    last_failure = None
+    for provider in available:
+        try:
+            return await call_provider(provider, instructions, history)
+        except HTTPException as error:
+            if error.status_code != 502:
+                raise
+            last_failure = error
+    raise last_failure
 
 
 @app.post("/api/tasks/{task_id}/run")
