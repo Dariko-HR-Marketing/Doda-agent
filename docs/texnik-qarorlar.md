@@ -15,6 +15,8 @@
 | 11 | Model yo'naltirgich: oddiy savol Flash-Lite, murakkab 3.8 Flash; oylik limit $5, sarf hisobi | Token tejash va kutilmagan hisobning oldini olish | Haqiqiy sarf o'lchangach |
 | 12 | Ishchi maydon: serverdagi virtual papka (matnli fayllar, 20 versiya, bekor qilish, to'qnashuvda 409) | Xotira o'qiladigan va tahrirlanadigan bo'lsin; desktop papka bilan keyin sinxronlanadi | 8-bosqich (desktop) |
 | 13 | Xotira: DODA faqat shaxsiy/doimiy ma'lumotga o'xshash xabarlardan, arzon modelda, javobdan keyin faktlarni ajratadi; maxfiy ma'lumot (parol, karta, kalit) yozilmaydi; foydalanuvchi o'chira oladi | Qo'shimcha so'rov va tokenni kamaytirish, maxfiylik | Agent xotirasi (5-bosqich) |
+| 14 | Interfeys: bitta ustunli sodda chat (tepada logotip/til/menyu, pastda yozish+mikrofon+yuborish); menyuda faqat Yangi suhbat, Fayllar va xotira, Akkaunt, suhbatlar | Kam element, chat markazda; eski prototip sahifalari 4–5-bosqichda haqiqiy funksiya sifatida qaytadi | Foydalanuvchi fikri bo'yicha |
+| 15 | Ovoz: brauzer Web Speech API (uz-UZ/ru-RU), jonli subtitr, 2 soniyadan keyin avtomat yuborish (bekor qilish mumkin); ovoz roziligi kerak | Server ovoz yozuvini olmaydi (maxfiylik, tejash) | Sifat past bo'lsa serverda STT (Gemini/Muxlisa) |
 
 ## Ochiq masalalar
 - Oferta matni: yurist tayyorlaydi (tuzilma: shartlar, shaxsiy ma'lumot, chet elga uzatish, ovoz).

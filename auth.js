@@ -127,7 +127,7 @@
   let notice = null; // {kind:'error'|'ok', text}
   let busy = false;
   let user = null;
-  window.DODA = { API, getUser: () => user, getLang: () => lang };
+  window.DODA = { API, getUser: () => user, getLang: () => lang, setLang: (l) => setLang(l), openAccount: () => openAccount() };
   function setUser(u) {
     user = u;
     document.dispatchEvent(new CustomEvent(u ? 'doda:login' : 'doda:logout', { detail: u }));
@@ -199,7 +199,8 @@
     lang = l;
     try { localStorage.setItem(LANG_KEY, l); } catch { /* e'tiborsiz */ }
     document.documentElement.lang = l;
-    render();
+    if (root) render();
+    document.dispatchEvent(new CustomEvent('doda:lang', { detail: l }));
   }
 
   function head(titleKey) {

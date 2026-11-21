@@ -1,0 +1,96 @@
+/* DODA: sodda chat interfeysi */
+body.min-on{overflow:hidden}
+.min-on .shell{display:none!important}
+.min{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;color:#e8f4f7;background:radial-gradient(ellipse 80% 50% at 50% -10%,#123e4b 0,transparent 60%),#061528;font-family:Manrope,system-ui,sans-serif}
+
+/* tepa panel */
+.min-top{flex:none;height:calc(56px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0 16px;display:flex;align-items:center;justify-content:space-between}
+.min-top-r{display:flex;align-items:center;gap:4px}
+.min-brand{display:flex;align-items:center;gap:10px;background:none;border:0;color:#eaf7fa;font-weight:800;letter-spacing:.08em;font-size:15px;padding:6px 8px 6px 0;border-radius:10px}
+.min-mark{width:28px;height:28px;border-radius:9px;background:linear-gradient(145deg,#79f78a,#17a66a);display:grid;place-items:center;color:#073127;font-weight:900;font-size:16px;transform:rotate(-7deg)}
+.min-icon{min-width:42px;height:42px;border:0;border-radius:12px;background:transparent;color:#b6d0d8;display:grid;place-items:center;font-size:12px;font-weight:800;letter-spacing:.06em}
+.min-icon:hover{background:#0f2c3c;color:#fff}
+
+/* suhbat */
+.min-stream{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.min-col{max-width:720px;margin:0 auto;padding:8px 16px 28px;display:flex;flex-direction:column;gap:24px;min-height:100%}
+.min-empty{margin:auto;text-align:center;padding:6vh 0 10vh}
+.min-empty h1{margin:0 0 10px;font-size:clamp(28px,6vw,42px);font-weight:800;letter-spacing:-.02em;color:#f1fbfd}
+.min-empty p{margin:0;font-size:clamp(16px,3vw,19px);color:#a9c3ca}
+.min-empty small{display:block;margin-top:18px;color:#6f929c;font-size:13px}
+
+.min-msg.user{align-self:flex-end;max-width:86%}
+.min-bubble{background:#12384a;border-radius:20px 20px 6px 20px;padding:10px 16px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:1.55}
+.min-msg.doda{max-width:100%}
+.min-text{font-size:16px;line-height:1.7;overflow-wrap:anywhere;color:#e8f4f7}
+.min-text p{margin:0 0 .85em}
+.min-text p:last-child,.min-text ul:last-child,.min-text ol:last-child{margin-bottom:0}
+.min-text ul,.min-text ol{margin:0 0 .85em;padding-left:22px}
+.min-text li{margin:.25em 0}
+.min-text strong{color:#fff}
+.min-text code{font:13.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0d2a3a;border:1px solid #1f4252;border-radius:6px;padding:1px 6px}
+.min-meta{margin-top:8px;font-size:12px;color:#6a8d97}
+.min-meta:empty{display:none}
+.min-mem{margin-top:8px;font-size:12.5px;color:#7be8a0}
+.min-msg.error .min-text{color:#ffc5cd}
+.min-msg.typing .min-text:empty::after,.min-msg.typing .min-text::after{content:"";display:inline-block;width:8px;height:8px;margin-left:3px;border-radius:50%;background:#6af08a;vertical-align:middle;animation:minPulse 1s infinite ease-in-out}
+
+/* yozish maydoni */
+.min-foot{flex:none;width:100%;max-width:752px;margin:0 auto;padding:6px 16px calc(10px + env(safe-area-inset-bottom))}
+.min-pill{display:flex;align-items:flex-end;gap:4px;padding:6px 6px 6px 20px;background:#0c2536;border:1px solid #2b5365;border-radius:30px;box-shadow:0 12px 36px #00081a66;transition:border-color .15s}
+.min-pill:focus-within{border-color:#4fdc7c}
+.min-input{flex:1;min-width:0;background:transparent;border:0;outline:0;resize:none;color:#eefafc;font:inherit;font-size:16px;line-height:1.5;padding:10px 0;max-height:160px}
+.min-input::placeholder{color:#6a8d97}
+.min-input.interim{color:#9fd8b2;font-style:italic}
+.min-circle{flex:none;width:44px;height:44px;border-radius:50%;border:0;display:grid;place-items:center;background:transparent;color:#b6d0d8;transition:background .15s,color .15s}
+.min-circle:hover:not(:disabled){background:#12384a;color:#fff}
+.min-circle:disabled{opacity:.4}
+.min-mic[hidden]{display:none}
+.min-mic.live{background:#1b4b3e;color:#7be8a0;animation:minRing 1.4s infinite}
+.min-send{background:#143246;color:#6a8d97}
+.min-send.on{background:linear-gradient(135deg,#6af08a,#27c07a);color:#052c1f}
+.min-send.stop{background:#e8f4f7;color:#0a2030}
+.min-live{min-height:22px;padding:7px 20px 0;display:flex;align-items:center;gap:12px;font-size:13px;color:#8fb2bb}
+.min-live.on{color:#9fe3b6}
+.min-link{background:none;border:0;padding:0;color:#7fe3a2;text-decoration:underline;text-underline-offset:3px;font-size:13px;min-height:28px}
+.min-note{margin:6px 0 0;text-align:center;font-size:11.5px;line-height:1.4;color:#54747e}
+
+.min-consent{margin:0 0 10px;padding:14px 16px;border:1px solid #2f6b57;border-radius:18px;background:#0f2f30}
+.min-consent[hidden]{display:none}
+.min-consent p{margin:6px 0 12px;font-size:13.5px;line-height:1.5;color:#bfd8d2}
+.min-consent-actions{display:flex;gap:8px;flex-wrap:wrap}
+.min-btn{min-height:40px;padding:0 18px;border:1px solid #356a7d;border-radius:12px;background:#0f2c3c;color:#e3f1f5;font-weight:700;font-size:14px}
+.min-btn.primary{border:0;background:linear-gradient(135deg,#6af08a,#27c07a);color:#052c1f}
+
+/* menyu */
+.min-sheet-wrap{position:fixed;inset:0;z-index:50;background:#02080fa6;display:flex;justify-content:flex-end}
+.min-sheet{width:min(360px,100vw);height:100%;overflow:auto;padding:12px 14px calc(16px + env(safe-area-inset-bottom));background:#0a2030;border-left:1px solid #27495a;display:flex;flex-direction:column;gap:4px;animation:minSlide .18s ease-out}
+.min-sheet-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 8px 8px;min-height:50px}
+.min-row{width:100%;min-height:48px;padding:0 14px;border:0;border-radius:12px;background:transparent;color:#e3f1f5;text-align:left;font-size:15px;font-weight:600}
+.min-row:hover{background:#12384a}
+.min-row.strong{color:#7be8a0}
+.min-sep{margin:16px 8px 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6a8d97;font-weight:800}
+.min-chats{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.min-row.chat{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.min-row.chat.on{background:#12384a}
+.min-none{padding:8px 14px;color:#6a8d97;font-size:13px}
+
+/* fayllar */
+.min-files{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:#061528}
+.min-files-head{flex:none;height:calc(56px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 12px 0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1c3a4a}
+.min-files-body{flex:1;overflow:auto;width:100%;max-width:1100px;margin:0 auto;padding:16px}
+
+.min-brand:focus-visible,.min-icon:focus-visible,.min-circle:focus-visible,.min-row:focus-visible,.min-btn:focus-visible,.min-link:focus-visible{outline:2px solid #8df5a2;outline-offset:2px}
+@keyframes minPulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+@keyframes minRing{0%{box-shadow:0 0 0 0 #55df8066}70%{box-shadow:0 0 0 12px #55df8000}100%{box-shadow:0 0 0 0 #55df8000}}
+@keyframes minSlide{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.min-mic.live,.min-sheet,.min-msg.typing .min-text::after{animation:none}}
+@media (max-width:480px){.min-col{padding:4px 14px 24px;gap:20px}.min-foot{padding-left:10px;padding-right:10px}.min-msg.user{max-width:92%}}
+
+/* eski prototip elementlarini yashirish (tizimga kirgan foydalanuvchi uchun) */
+.min-on .mobile-nav{display:none!important}
+/* brauzerning kvadrat fokus chizig'i o'rniga halqa (pill) o'zi yashil bo'ladi */
+.min .min-input:focus,.min .min-input:focus-visible{outline:0;box-shadow:none}
+.min .min-circle:focus{outline:0}
+.min .min-circle:focus-visible{outline:2px solid #8df5a2;outline-offset:2px}
+.min button{-webkit-tap-highlight-color:transparent}

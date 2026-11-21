@@ -224,13 +224,10 @@
     setStatus(`${tr('restored')} · v${r.data.version}`, 'ok');
   }
 
-  function mount() {
-    const page = $('#knowledge');
-    if (!page || panel) return;
+  function mount(container) {
+    if (panel) unmount();
     panel = h('section', { class: 'ws glass', id: 'ws-panel' });
-    const intro = page.querySelector('.page-intro');
-    if (intro) intro.after(panel);
-    else page.prepend(panel);
+    container.append(panel);
     build();
     loadList();
   }
@@ -243,16 +240,12 @@
     dirty = false;
   }
 
-  document.addEventListener('doda:login', mount);
-  document.addEventListener('doda:logout', unmount);
+  window.DODA_WS = { mount, unmount, isDirty: () => dirty };
+
   document.addEventListener('doda:memory', async () => {
     if (!panel) return;
     await loadList();
     if (current && !dirty && current.path === 'xotira/faktlar.md') openFile(current.path, true);
   });
-  document.addEventListener('click', (e) => {
-    if (panel && e.target.closest && e.target.closest('[data-page="knowledge"]')) loadList();
-  });
   window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
-  if (D().getUser && D().getUser()) mount();
 })();
