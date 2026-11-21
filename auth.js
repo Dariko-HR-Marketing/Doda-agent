@@ -127,6 +127,11 @@
   let notice = null; // {kind:'error'|'ok', text}
   let busy = false;
   let user = null;
+  window.DODA = { API, getUser: () => user, getLang: () => lang };
+  function setUser(u) {
+    user = u;
+    document.dispatchEvent(new CustomEvent(u ? 'doda:login' : 'doda:logout', { detail: u }));
+  }
   let draft = { email: '' };
   let resetToken = null;
   let diag = '';
@@ -449,7 +454,7 @@
   }
 
   function onLoggedIn(u) {
-    user = u;
+    setUser(u);
     notice = null;
     draft = { email: '' };
     hideAuth();
@@ -469,7 +474,7 @@
     const del = h('button', { class: 'auth-danger', disabled: true, onclick: async () => {
       del.disabled = true;
       const r = await api('/api/account', { method: 'DELETE' });
-      if (r.status === 200) { dlg.close(); user = null; showAuth('login', { notice: null }); } else { del.disabled = false; err.textContent = errText(r); }
+      if (r.status === 200) { dlg.close(); setUser(null); showAuth('login', { notice: null }); } else { del.disabled = false; err.textContent = errText(r); }
     } }, tr('deleteBtn'));
     ack.addEventListener('change', () => { del.disabled = !ack.checked; });
     const err = h('div', { class: 'auth-notice error', role: 'alert' });
@@ -479,7 +484,7 @@
         h('button', { class: 'close-button', 'aria-label': tr('close'), onclick: () => dlg.close() }, '×')),
       h('label', { class: 'auth-check' }, voice, h('span', {}, tr('voiceConsent'))),
       h('div', { class: 'auth-actions' },
-        h('button', { class: 'auth-secondary', onclick: async () => { await api('/api/auth/logout', { method: 'POST', body: {} }); dlg.close(); user = null; showAuth('login', { notice: null }); } }, tr('logout'))),
+        h('button', { class: 'auth-secondary', onclick: async () => { await api('/api/auth/logout', { method: 'POST', body: {} }); dlg.close(); setUser(null); showAuth('login', { notice: null }); } }, tr('logout'))),
       h('details', { class: 'auth-delete' }, h('summary', {}, tr('deleteTitle')), h('p', {}, tr('deleteText')),
         h('label', { class: 'auth-check' }, ack, h('span', {}, tr('deleteAck'))), err, del),
     );

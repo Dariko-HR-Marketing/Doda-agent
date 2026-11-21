@@ -3,6 +3,7 @@ import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { openDb } from "./db.js";
 import { HttpGoogleClient } from "./google.js";
+import { GeminiProvider } from "./llm/gemini.js";
 import { createMailer } from "./mailer.js";
 
 const config = loadConfig();
@@ -15,7 +16,9 @@ const google =
         `${config.PUBLIC_API_URL}/api/auth/google/callback`,
       )
     : null;
-const app = createApp({ config, db, mailer: createMailer(config), google });
+const llm = config.GEMINI_API_KEY ? new GeminiProvider(config.GEMINI_API_KEY, fetch, 90_000, config.GEMINI_BASE_URL) : null;
+if (!llm) console.warn("[llm] GEMINI_API_KEY yo'q: suhbat o'chiq");
+const app = createApp({ config, db, mailer: createMailer(config), google, llm });
 
 // Muddati o'tgan sessiya va tokenlarni tozalash
 function cleanup(): void {

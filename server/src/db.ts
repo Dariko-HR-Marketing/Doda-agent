@@ -63,6 +63,38 @@ const MIGRATIONS: string[] = [
     expires_at INTEGER NOT NULL
   );
   `,
+  `
+  CREATE TABLE conversations (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title      TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE INDEX conversations_user ON conversations(user_id, updated_at DESC);
+  CREATE TABLE messages (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    role            TEXT NOT NULL CHECK (role IN ('user','assistant')),
+    content         TEXT NOT NULL,
+    model           TEXT,
+    tokens_in       INTEGER,
+    tokens_out      INTEGER,
+    created_at      INTEGER NOT NULL
+  );
+  CREATE INDEX messages_conv ON messages(conversation_id, id);
+  CREATE TABLE usage (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    conversation_id TEXT,
+    model           TEXT NOT NULL,
+    tokens_in       INTEGER NOT NULL,
+    tokens_out      INTEGER NOT NULL,
+    cost_usd        REAL NOT NULL,
+    created_at      INTEGER NOT NULL
+  );
+  CREATE INDEX usage_user ON usage(user_id, created_at);
+  `,
 ];
 
 export function openDb(path: string): Db {

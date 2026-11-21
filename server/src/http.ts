@@ -5,6 +5,7 @@ import type { Db } from "./db.js";
 import { t, type Locale, type MessageCode } from "./i18n.js";
 import type { Mailer } from "./mailer.js";
 import type { GoogleClient } from "./google.js";
+import type { LlmProvider } from "./llm/types.js";
 import type { RateLimiter } from "./rateLimit.js";
 
 export interface Deps {
@@ -14,9 +15,10 @@ export interface Deps {
   limiter?: RateLimiter;
   now?: () => number;
   google?: GoogleClient | null;
+  llm?: LlmProvider | null;
 }
 
-export type ResolvedDeps = Required<Omit<Deps, "google">> & { google: GoogleClient | null };
+export type ResolvedDeps = Required<Omit<Deps, "google" | "llm">> & { google: GoogleClient | null; llm: LlmProvider | null };
 
 export interface AuthedUser {
   id: string;
@@ -43,7 +45,7 @@ export function clientIp(c: Context<Env>, trustProxy: boolean): string {
   return incoming?.socket?.remoteAddress ?? "unknown";
 }
 
-export function fail(c: Context<Env>, status: 400 | 401 | 403 | 404 | 429 | 500, code: MessageCode, extra: object = {}) {
+export function fail(c: Context<Env>, status: 400 | 401 | 403 | 404 | 429 | 500 | 503, code: MessageCode, extra: object = {}) {
   return c.json({ error: { code, message: t(code, c.get("locale")), ...extra } }, status);
 }
 

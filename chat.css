@@ -1,0 +1,14 @@
+/* DODA: suhbat oynasi (haqiqiy rejim) */
+.chat-text{white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-message.typing .chat-text{color:#8fb2bb}
+.chat-message.typing .chat-text::after{content:"";display:inline-block;width:6px;height:6px;margin-left:4px;border-radius:50%;background:#6af08a;animation:dodaPulse 1s infinite ease-in-out}
+.chat-message.error .message-body{background:#3a1a24;border-color:#7b3944}
+.chat-message.error .chat-text{color:#ffd5db}
+.chat-foot{display:block;margin-top:6px;font-size:11px;color:#7fa0aa;line-height:1.4}
+.chat-foot.err{color:#ffb3bd}
+.chat-new{margin-left:auto;min-height:32px;padding:0 12px;border:1px solid #356a7d;border-radius:10px;background:#0f2c3c;color:#cfe8ee;font-size:12px;font-weight:600}
+.chat-new:hover{background:#143a4d}
+.conversation .section-head{align-items:center;gap:10px}
+.send-button:disabled{opacity:.45;cursor:progress}
+@keyframes dodaPulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.chat-message.typing .chat-text::after{animation:none}}

@@ -6,6 +6,7 @@ import { RateLimiter } from "./rateLimit.js";
 import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/account.js";
 import { googleRoutes } from "./routes/google.js";
+import { chatRoutes } from "./routes/chat.js";
 
 export function createApp(input: Deps): Hono<Env> {
   const deps: ResolvedDeps = {
@@ -13,6 +14,7 @@ export function createApp(input: Deps): Hono<Env> {
     limiter: input.limiter ?? new RateLimiter(input.now),
     now: input.now ?? Date.now,
     google: input.google ?? null,
+    llm: input.llm ?? null,
   };
   const { config } = deps;
   const app = new Hono<Env>();
@@ -63,6 +65,7 @@ export function createApp(input: Deps): Hono<Env> {
   app.route("/api/auth", authRoutes);
   app.route("/api/auth/google", googleRoutes);
   app.route("/api/account", accountRoutes);
+  app.route("/api", chatRoutes);
 
   app.notFound((c) => fail(c, 404, "not_found"));
   app.onError((err, c) => {

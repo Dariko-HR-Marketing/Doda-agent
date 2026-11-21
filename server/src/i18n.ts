@@ -29,6 +29,14 @@ const messages = {
     ru: "Слишком много попыток. Повторите позже.",
   },
   forbidden_origin: { uz: "Ruxsat berilmagan manba.", ru: "Источник запроса не разрешён." },
+  budget_exceeded: {
+    uz: "Bu oy uchun sarf limiti tugadi. Limit keyingi oyda yangilanadi.",
+    ru: "Лимит расходов на этот месяц исчерпан. Он обновится в следующем месяце.",
+  },
+  llm_unavailable: {
+    uz: "Suhbat xizmati hozir mavjud emas. Birozdan keyin qayta urinib ko‘ring.",
+    ru: "Сервис диалога сейчас недоступен. Повторите попытку позже.",
+  },
   not_found: { uz: "Topilmadi.", ru: "Не найдено." },
   server_error: { uz: "Ichki xatolik.", ru: "Внутренняя ошибка." },
 } as const;

@@ -22,6 +22,17 @@ const schema = z.object({
   SMTP_PASS: z.string().optional(),
   /** Yuboruvchi manzili, masalan: DODA <noreply@example.com> */
   MAIL_FROM: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  /** Sinov yoki proksi uchun; odatda o'zgartirilmaydi */
+  GEMINI_BASE_URL: z.string().url().default("https://generativelanguage.googleapis.com"),
+  /** Oddiy savollar uchun arzon model */
+  GEMINI_MODEL_LIGHT: z.string().default("gemini-3.5-flash-lite"),
+  /** Murakkab ishlar uchun asosiy model */
+  GEMINI_MODEL_MAIN: z.string().default("gemini-3.8-flash"),
+  /** Bitta foydalanuvchi uchun oylik limit (USD) */
+  MONTHLY_BUDGET_USD: z.coerce.number().positive().default(5),
+  /** Modelga yuboriladigan oxirgi xabarlar soni */
+  HISTORY_MESSAGES: z.coerce.number().int().min(2).max(60).default(20),
 });
 
 export type Config = z.infer<typeof schema> & { isProd: boolean; trustProxy: boolean };
