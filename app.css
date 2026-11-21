@@ -15,3 +15,5 @@
 .migration-notice strong{font-size:16px}.migration-notice p{margin:0;color:#d2e5e1;line-height:1.5}
 .migration-notice div{display:flex;gap:10px;flex-wrap:wrap}.migration-notice button{padding:10px 15px}
 .migration-notice button:disabled{opacity:.55;cursor:not-allowed}.migration-notice small{color:#a7d9c0}
+.model-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 0 16px;color:#bbd9d2}.model-toolbar label{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700}.model-toolbar select{max-width:min(450px,70vw);min-height:38px;padding:8px 12px;border:1px solid #3b6571;border-radius:9px;color:#e8f8f5;background:#0d2b3d;font:inherit}.model-toolbar small{font-size:11px;color:#a7c8ca}
+@media(max-width:640px){.model-toolbar{display:grid}.model-toolbar label{display:grid}.model-toolbar select{max-width:100%;width:100%}}

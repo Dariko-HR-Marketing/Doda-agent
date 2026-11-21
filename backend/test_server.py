@@ -41,6 +41,7 @@ class DodaTests(unittest.TestCase):
 
     def test_private_data_and_origin(self):
         self.assertEqual(self.client.get("/api/state").status_code, 401)
+        self.assertEqual(self.client.get("/api/ai/models").status_code, 401)
         self.login()
         self.assertEqual(self.client.post("/api/tasks", json={}, headers={"Origin": "https://attacker.example"}).status_code, 403)
         self.assertEqual(self.client.get("/api/state").status_code, 200)
@@ -129,7 +130,7 @@ class DodaTests(unittest.TestCase):
                  transport=httpx.MockTransport(reply), **kw)):
             status = self.client.get("/api/ai/status").json()
             self.assertEqual(status["order"], ["openai", "gemini"])
-            self.assertTrue(all(status["configured"].values()))
+            self.assertTrue(status["configured"]["openai"] and status["configured"]["gemini"])
             response = self.client.post("/api/chat", json={"text": "Salom"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["reply"], "Gemini javobi")
@@ -170,6 +171,59 @@ class DodaTests(unittest.TestCase):
             before = len(self.client.get("/api/state").json()["messages"])
             self.assertEqual(self.client.post("/api/chat", json={"text": "Xato sinovi"}).status_code, 502)
             self.assertEqual(len(self.client.get("/api/state").json()["messages"]), before)
+
+    def test_claude_message_and_pdf_adapter(self):
+        seen = []
+
+        def reply(request):
+            seen.append((request.url.path, dict(request.headers), json.loads(request.content)))
+            return httpx.Response(200, json={"content": [{"type": "thinking", "thinking": "internal"},
+                                                          {"type": "text", "text": "Claude xulosasi"}]})
+
+        original_client = httpx.AsyncClient
+        with patch.dict(os.environ, {"DODA_AI_ORDER": "claude", "ANTHROPIC_API_KEY": "private-claude",
+                                  "DODA_CLAUDE_MODEL": "example-claude", "ANTHROPIC_WORKSPACE_ID": "wrkspc_test"}), \
+             patch.object(self.server.httpx, "AsyncClient", side_effect=lambda **kw: original_client(
+                 transport=httpx.MockTransport(reply), **kw)):
+            answer = asyncio.run(self.server.ask_model("Tekshir", [{"role": "user", "content": [
+                {"type": "input_text", "text": "Tahlil"}, {"type": "input_file", "filename": "brief.pdf",
+                 "file_data": "data:application/pdf;base64," + base64.b64encode(b"%PDF-test").decode()}]}]))
+        self.assertEqual(answer, "Claude xulosasi")
+        self.assertEqual(seen[0][0], "/v1/messages")
+        self.assertEqual(seen[0][1]["anthropic-version"], "2026-10-21")
+        self.assertEqual(seen[0][1]["anthropic-workspace-id"], "wrkspc_test")
+        self.assertEqual(seen[0][2]["messages"][0]["content"][1]["type"], "document")
+
+    def test_model_catalog_and_explicit_selection(self):
+        self.login()
+        self.server.MODEL_CATALOG.clear()
+        seen = []
+
+        def reply(request):
+            seen.append((request.method, request.url.path, json.loads(request.content) if request.content else None))
+            if request.url.host == "api.openai.com" and request.url.path == "/v1/models":
+                return httpx.Response(200, json={"data": [{"id": "gpt-example", "object": "model"}]})
+            if request.url.path == "/v1beta/models":
+                return httpx.Response(200, json={"models": [{"name": "models/gemini-example",
+                                                             "supportedGenerationMethods": ["generateContent"]}]})
+            if request.url.path == "/v1/responses":
+                return httpx.Response(200, json={"output": [{"content": [{"type": "output_text", "text": "Tanlangan model"}]}]})
+            return httpx.Response(200, json={"data": [{"id": "claude-example", "lifecycle": "active"}], "has_more": False})
+
+        original_client = httpx.AsyncClient
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "key-a", "DODA_MODEL": "gpt-example",
+                                  "GEMINI_API_KEY": "key-g", "DODA_GEMINI_MODEL": "gemini-example",
+                                  "ANTHROPIC_API_KEY": "key-c", "DODA_CLAUDE_MODEL": "claude-example"}), \
+             patch.object(self.server.httpx, "AsyncClient", side_effect=lambda **kw: original_client(
+                 transport=httpx.MockTransport(reply), **kw)):
+            catalog = self.client.get("/api/ai/models").json()
+            self.assertEqual(set(catalog["models"]), {"openai", "gemini", "claude"})
+            self.assertEqual(catalog["models"]["gemini"][0]["id"], "gemini-example")
+            answer = self.client.post("/api/chat", json={"text": "Salom", "provider": "openai", "model": "gpt-example"})
+            self.assertEqual(answer.json()["reply"], "Tanlangan model")
+            self.assertEqual(self.client.post("/api/chat", json={"text": "Salom", "provider": "openai",
+                                                               "model": "unlisted"}).status_code, 400)
+        self.assertEqual(len([item for item in seen if item[1] == "/v1/responses"]), 1)
 
 
 if __name__ == "__main__":

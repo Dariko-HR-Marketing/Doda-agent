@@ -17,6 +17,7 @@ import uuid
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
@@ -33,6 +34,8 @@ MAX_FILE = 20 * 1024 * 1024
 ALLOWED_AGENTS = ("Hujjat va sifat agenti", "HR jarayonlari agenti", "Marketing va tadqiqot agenti")
 SUPPORTED_FILES = {".pdf", ".doc", ".docx", ".txt", ".md", ".csv", ".xlsx", ".pptx"}
 attempts = defaultdict(deque)
+MODEL_CATALOG = {}
+PROVIDERS = ("openai", "gemini", "claude")
 
 
 def db():
@@ -313,11 +316,13 @@ def download(file_id: str, _=Depends(authenticated)):
 
 class ChatInput(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
+    provider: str | None = None
+    model: str | None = None
 
 
 def provider_order():
-    order = [item.strip().lower() for item in os.getenv("DODA_AI_ORDER", "openai,gemini").split(",")]
-    if not order or len(order) != len(set(order)) or any(item not in ("openai", "gemini") for item in order):
+    order = [item.strip().lower() for item in os.getenv("DODA_AI_ORDER", "openai,gemini,claude").split(",")]
+    if not order or len(order) != len(set(order)) or any(item not in PROVIDERS for item in order):
         raise HTTPException(503, "AI xizmatlari tartibi noto‘g‘ri sozlangan")
     return order
 
@@ -325,13 +330,74 @@ def provider_order():
 def provider_configured(provider):
     if provider == "openai":
         return bool(os.getenv("OPENAI_API_KEY") and os.getenv("DODA_MODEL"))
-    return bool(os.getenv("GEMINI_API_KEY") and os.getenv("DODA_GEMINI_MODEL"))
+    if provider == "gemini":
+        return bool(os.getenv("GEMINI_API_KEY") and os.getenv("DODA_GEMINI_MODEL"))
+    return bool(os.getenv("ANTHROPIC_API_KEY") and os.getenv("DODA_CLAUDE_MODEL"))
 
 
 @app.get("/api/ai/status")
 def ai_status(_=Depends(authenticated)):
     return {"order": provider_order(), "configured": {name: provider_configured(name)
-            for name in ("openai", "gemini")}}
+            for name in PROVIDERS}}
+
+
+def claude_headers():
+    headers = {"Authorization": f"Bearer {os.environ['ANTHROPIC_API_KEY']}",
+               "anthropic-version": "2026-10-21"}
+    if os.getenv("ANTHROPIC_WORKSPACE_ID"):
+        headers["anthropic-workspace-id"] = os.environ["ANTHROPIC_WORKSPACE_ID"]
+    return headers
+
+
+async def list_models(provider):
+    if provider not in PROVIDERS or not provider_configured(provider):
+        raise HTTPException(503, "AI xizmati sozlanmagan")
+    cached = MODEL_CATALOG.get(provider)
+    if cached and time.time() - cached[0] < 600:
+        return cached[1]
+    if provider == "openai":
+        url, headers = "https://api.openai.com/v1/models", {"Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"}
+    elif provider == "gemini":
+        url, headers = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000", {"x-goog-api-key": os.environ["GEMINI_API_KEY"]}
+    else:
+        url, headers = "https://api.anthropic.com/v1/models?limit=1000", claude_headers()
+    models, page = [], None
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            for _ in range(10):
+                target = url + (f"&pageToken={quote(page, safe='')}" if provider == "gemini" and page else
+                                f"&after_id={quote(page, safe='')}" if provider == "claude" and page else "")
+                response = await client.get(target, headers=headers)
+                response.raise_for_status()
+                data = response.json()
+                if provider == "gemini":
+                    models.extend({"id": row["name"].removeprefix("models/"), "label": row.get("displayName", row["name"])}
+                                  for row in data.get("models", []) if "generateContent" in row.get("supportedGenerationMethods", []))
+                    page = data.get("nextPageToken")
+                else:
+                    models.extend({"id": row["id"], "label": row.get("display_name", row["id"])}
+                                  for row in data.get("data", []) if provider != "claude" or row.get("lifecycle") != "retired")
+                    page = data.get("last_id") if provider == "claude" and data.get("has_more") else None
+                if not page:
+                    break
+        if page:
+            raise ValueError("Model ro‘yxati chegaradan oshdi")
+        MODEL_CATALOG[provider] = (time.time(), models)
+        return models
+    except (httpx.HTTPError, ValueError, KeyError):
+        raise HTTPException(502, f"{provider} model ro‘yxati olinmadi")
+
+
+@app.get("/api/ai/models")
+async def ai_models(_=Depends(authenticated)):
+    result = {"models": {}, "errors": {}}
+    for provider in PROVIDERS:
+        if provider_configured(provider):
+            try:
+                result["models"][provider] = await list_models(provider)
+            except HTTPException:
+                result["errors"][provider] = "Model ro‘yxati olinmadi"
+    return result
 
 
 def gemini_contents(history):
@@ -360,21 +426,52 @@ def gemini_contents(history):
     return converted
 
 
-async def call_provider(provider, instructions, history):
-    key = os.environ["OPENAI_API_KEY" if provider == "openai" else "GEMINI_API_KEY"]
-    model = os.environ["DODA_MODEL" if provider == "openai" else "DODA_GEMINI_MODEL"]
-    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,100}", model):
+def claude_contents(history):
+    messages = []
+    for entry in history:
+        blocks = []
+        contents = entry["content"] if isinstance(entry["content"], list) else [entry["content"]]
+        for item in contents:
+            if isinstance(item, str):
+                blocks.append({"type": "text", "text": item})
+            elif item.get("type") == "input_text":
+                blocks.append({"type": "text", "text": item["text"]})
+            elif item.get("type") == "input_file":
+                name = item.get("filename", "")
+                extension = Path(name).suffix.lower()
+                if extension not in (".pdf", ".txt", ".md", ".csv"):
+                    raise HTTPException(415, f"Claude bu fayl turini qabul qilmaydi: {name}")
+                _, encoded = item["file_data"].split(";base64,", 1)
+                if extension == ".pdf":
+                    blocks.append({"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": encoded}})
+                else:
+                    blocks.append({"type": "text", "text": f"Fayl {name}:\n" + base64.b64decode(encoded).decode("utf-8-sig")})
+            else:
+                raise HTTPException(415, "Claude uchun noma’lum kontent")
+        messages.append({"role": entry["role"], "content": blocks})
+    return messages
+
+
+async def call_provider(provider, instructions, history, model=None):
+    key = os.environ[{"openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY", "claude": "ANTHROPIC_API_KEY"}[provider]]
+    model = model or os.environ[{"openai": "DODA_MODEL", "gemini": "DODA_GEMINI_MODEL", "claude": "DODA_CLAUDE_MODEL"}[provider]]
+    pattern = r"[A-Za-z0-9_.-]{1,100}" if provider == "gemini" else r"[A-Za-z0-9_.:/-]{1,100}"
+    if not re.fullmatch(pattern, model):
         raise HTTPException(503, f"{provider} model nomi noto‘g‘ri sozlangan")
     if provider == "openai":
         url = "https://api.openai.com/v1/responses"
         headers = {"Authorization": f"Bearer {key}"}
         payload = {"model": model, "instructions": instructions, "input": history,
                    "store": False, "max_output_tokens": 1500}
-    else:
+    elif provider == "gemini":
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         headers = {"x-goog-api-key": key}
         payload = {"systemInstruction": {"parts": [{"text": instructions}]},
                    "contents": gemini_contents(history), "generationConfig": {"maxOutputTokens": 1500}}
+    else:
+        url = "https://api.anthropic.com/v1/messages"
+        headers = claude_headers()
+        payload = {"model": model, "system": instructions, "messages": claude_contents(history), "max_tokens": 1500}
     try:
         async with httpx.AsyncClient(timeout=90) as client:
             res = await client.post(url, headers=headers, json=payload)
@@ -387,9 +484,11 @@ async def call_provider(provider, instructions, history):
         if provider == "openai":
             output = "\n".join(item.get("text", "") for entry in data.get("output", [])
                                for item in entry.get("content", []) if item.get("type") == "output_text").strip()
-        else:
+        elif provider == "gemini":
             output = "\n".join(part.get("text", "") for candidate in data.get("candidates", [])[:1]
                                for part in candidate.get("content", {}).get("parts", [])).strip()
+        else:
+            output = "\n".join(part.get("text", "") for part in data.get("content", []) if part.get("type") == "text").strip()
         if not output:
             raise ValueError("Bo‘sh javob")
         return output
@@ -397,8 +496,17 @@ async def call_provider(provider, instructions, history):
         raise HTTPException(502, f"{provider} vaqtincha javob bermadi")
 
 
-async def ask_model(instructions: str, history: list[dict]):
-    available = [name for name in provider_order() if provider_configured(name)]
+async def ask_model(instructions: str, history: list[dict], provider=None, model=None):
+    if bool(provider) != bool(model):
+        raise HTTPException(400, "AI xizmati va model birga tanlanishi kerak")
+    if provider and (provider not in PROVIDERS or not provider_configured(provider)):
+        raise HTTPException(400, "Tanlangan AI xizmati sozlanmagan")
+    pattern = r"[A-Za-z0-9_.-]{1,100}" if provider == "gemini" else r"[A-Za-z0-9_.:/-]{1,100}"
+    if model and not re.fullmatch(pattern, model):
+        raise HTTPException(400, "Model nomi noto‘g‘ri")
+    if provider and model and model not in {row["id"] for row in await list_models(provider)}:
+        raise HTTPException(400, "Tanlangan model ushbu hisobda topilmadi")
+    available = [provider] if provider else [name for name in provider_order() if provider_configured(name)]
     if not available:
         raise HTTPException(503, "AI ulanishi hali sozlanmagan")
     has_office_file = any(isinstance(item, dict) and item.get("type") == "input_file" and
@@ -411,16 +519,22 @@ async def ask_model(instructions: str, history: list[dict]):
     last_failure = None
     for provider in available:
         try:
-            return await call_provider(provider, instructions, history)
+            return await call_provider(provider, instructions, history, model)
         except HTTPException as error:
-            if error.status_code != 502:
+            if error.status_code != 502 or model:
                 raise
             last_failure = error
     raise last_failure
 
 
+class ModelChoice(BaseModel):
+    provider: str | None = None
+    model: str | None = None
+
+
 @app.post("/api/tasks/{task_id}/run")
-async def run_task(task_id: str, _=Depends(authenticated)):
+async def run_task(task_id: str, choice: ModelChoice | None = None, _=Depends(authenticated)):
+    choice = choice or ModelChoice()
     with db() as con:
         row = con.execute("SELECT data FROM tasks WHERE id=?", (task_id,)).fetchone()
         if not row:
@@ -446,7 +560,7 @@ async def run_task(task_id: str, _=Depends(authenticated)):
         f"Sen DODA ichidagi {task['agent']}san. Faqat topshiriq bo‘yicha yozma tahlil tayyorla. "
         "Tashqi amallarni bajarma, tasdiq berma, yakuniy qabulni Kapitanga qoldir. "
         "Agar ma’lumot yetishmasa, nima yetishmasligini aniq yoz. Javob O‘zbek tilida bo‘lsin.",
-        [{"role": "user", "content": content}])
+        [{"role": "user", "content": content}], choice.provider, choice.model)
     result_id = uuid.uuid4().hex
     filename = f"DODA-natija-{task_id[:8]}.txt"
     (FILES_PATH / result_id).write_text(answer, encoding="utf-8")
@@ -477,7 +591,8 @@ async def chat(body: ChatInput, _=Depends(authenticated)):
     answer = await ask_model(
         "Sen DODA, Hikmatulloning shaxsiy agentisan. O‘zbek tilida aniq va rost javob ber. "
         "O‘zing bajarmagan ishni bajarildi deb aytma. Tashqi amal, xarajat, nashr yoki yangi agentni "
-        "tasdiqsiz bajarma. Shu interfeysda faqat suhbat qila olasan; topshiriqlar alohida boshqariladi.", history)
+        "tasdiqsiz bajarma. Shu interfeysda faqat suhbat qila olasan; topshiriqlar alohida boshqariladi.",
+        history, body.provider, body.model)
     now = int(time.time())
     with db() as con:
         con.execute("INSERT INTO messages(role,content,created_at) VALUES (?,?,?)", ("user", text, now))
