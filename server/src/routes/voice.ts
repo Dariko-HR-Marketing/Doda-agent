@@ -3,7 +3,7 @@ import { z } from "zod";
 import { currentConsents } from "../consents.js";
 import { fail, type Env } from "../http.js";
 import { costUsd } from "../llm/pricing.js";
-import { LlmHttpError } from "../llm/types.js";
+import { ChainError, chainFor, legacyChain, runChain } from "../llm/multi.js";
 import { requireAuth } from "../session.js";
 
 export const voiceRoutes = new Hono<Env>();
@@ -34,25 +34,30 @@ voiceRoutes.post("/transcribe", async (c) => {
   const spent = (db.prepare("SELECT COALESCE(SUM(cost_usd),0) usd FROM usage WHERE user_id = ? AND created_at >= ?").get(user.id, monthStart) as { usd: number }).usd;
   if (spent >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
 
-  let model = config.GEMINI_MODEL_STT;
-  const call = (m: string) => llm.transcribe({ model: m, mime: body.data.mime.split(";")[0]!.toLowerCase(), data: body.data.data, lang: body.data.lang });
+  const mime = body.data.mime.split(";")[0]!.toLowerCase();
   let r;
+  let model = "";
   try {
-    try {
-      r = await call(model);
-    } catch (e) {
-      if (model === config.GEMINI_MODEL_MAIN || (e instanceof LlmHttpError && e.status === 429)) throw e;
-      model = config.GEMINI_MODEL_MAIN;
-      r = await call(model);
-    }
+    // Faqat ovozni biladigan provayderlar: Claude o'tkazib yuboriladi (501), keyingisiga o'tiladi
+    const out = await runChain(chainFor({ llm, legacy: legacyChain(config) }, "stt"), (m) => llm.transcribe({ model: m, mime, data: body.data.data, lang: body.data.lang }));
+    r = out.result;
+    model = out.model;
   } catch (e) {
-    console.error("[voice] model xatosi:", e instanceof LlmHttpError ? `status ${e.status}` : "noma'lum");
-    if (e instanceof LlmHttpError && e.status === 429) return fail(c, 429, "llm_rate_limited");
-    if (e instanceof LlmHttpError && e.status === 400) return fail(c, 400, "audio_invalid");
-    return fail(c, 503, "llm_unavailable");
+    const code = e instanceof ChainError ? e.code : "llm_unavailable";
+    console.error("[voice] model xatosi:", e instanceof ChainError ? e.statuses.join(",") : "noma'lum");
+    if (code === "llm_rate_limited") return fail(c, 429, code);
+    if (e instanceof ChainError && e.statuses.length && e.statuses.every((s) => s === 400)) return fail(c, 400, "audio_invalid");
+    return fail(c, 503, code);
   }
   db.prepare("INSERT INTO usage (user_id, conversation_id, model, tokens_in, tokens_out, cost_usd, created_at) VALUES (?,?,?,?,?,?,?)").run(
     user.id, null, model, r.tokensIn, r.tokensOut, costUsd(model, r.tokensIn, r.tokensOut, now()), now(),
   );
   return c.json({ text: r.text.replace(/\s+/g, " ").trim().slice(0, 4000) });
+});
+
+/** Interfeys: serverda ovozni matnga aylantirish bormi (bo'lmasa, brauzer tanishi ishlatiladi) */
+voiceRoutes.get("/status", (c) => {
+  const { config, llm } = c.get("deps");
+  const on = !!llm && chainFor({ llm, legacy: legacyChain(config) }, "stt").some((m) => m.startsWith("gemini-") || m.startsWith("gpt-"));
+  return c.json({ server: on });
 });

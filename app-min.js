@@ -17,11 +17,11 @@
       netErr: 'Aloqa xatosi. Qayta urinib ko‘ring.', remembered: 'Eslab qoldim: ', limit: 'Oylik limit',
       attach: 'Fayl biriktirish', attachHint: 'Matnli fayllar: .txt .md .csv .json', removeAtt: 'Olib tashlash', file: 'Fayl',
       attOnly: 'Shu faylni ko‘rib chiqing.', fileBig: 'Fayl juda katta (har biri 12 000 belgigacha, jami 16 000).', binary: 'Hozircha faqat matnli fayllar qo‘llanadi.', tooMany: 'Ko‘pi bilan 3 ta fayl.',
-      model: 'Model', auto: 'Avto', autoD: 'DODA o‘zi tanlaydi (tejamkor)', fast: 'Tez', fastD: 'Gemini 3.5 Flash-Lite: oddiy savollar uchun', smart: 'Aqlli', smartD: 'Gemini 3.8 Flash: murakkab ishlar uchun',
+      model: 'Model', auto: 'Avto', autoD: 'DODA o‘zi tanlaydi (tejamkor)', fast: 'Tez', fastD: 'Tez va arzon model: oddiy savollar uchun', smart: 'Aqlli', smartD: 'Kuchli model: murakkab ishlar uchun',
       copy: 'Nusxa olish', copied: 'Nusxalandi',
-      note: 'DODA xato qilishi mumkin. Matn va ovoz yozuvi Google Gemini xizmatiga yuboriladi: maxfiy ma’lumot yozmang.',
+      note: 'DODA xato qilishi mumkin. Matn va ovoz yozuvi AI xizmatiga (Google Gemini, Anthropic Claude yoki OpenAI) yuboriladi: maxfiy ma’lumot yozmang.',
       consentTitle: 'Ovozli kiritish',
-      consentText: 'Gapirganingizda ovoz yozib olinadi va matnga aylantirish uchun Google Gemini xizmatiga yuboriladi. Ovoz yozuvi DODA serverida saqlanmaydi. Bunga roziligingiz kerak (keyin akkauntda o‘chira olasiz).',
+      consentText: 'Gapirganingizda ovoz yozib olinadi va matnga aylantirish uchun AI xizmatiga (Google Gemini yoki OpenAI) yuboriladi. Ovoz yozuvi DODA serverida saqlanmaydi. Bunga roziligingiz kerak (keyin akkauntda o‘chira olasiz).',
       agree: 'Roziman', decline: 'Hozir emas',
       e_not_allowed: 'Mikrofonga ruxsat bering (manzil satridagi qulf belgisi orqali).', e_no_speech: 'Ovoz eshitilmadi. Qayta urinib ko‘ring.',
       e_lang: 'Bu til brauzerda ovoz uchun qo‘llab-quvvatlanmaydi.', e_network: 'Ovozni matnga o‘girish xizmatiga ulanib bo‘lmadi.', e_other: 'Ovozli kiritishda xatolik.',
@@ -36,11 +36,11 @@
       netErr: 'Ошибка связи. Повторите попытку.', remembered: 'Запомнил: ', limit: 'Месячный лимит',
       attach: 'Прикрепить файл', attachHint: 'Текстовые файлы: .txt .md .csv .json', removeAtt: 'Убрать', file: 'Файл',
       attOnly: 'Посмотрите этот файл.', fileBig: 'Файл слишком большой (до 12 000 символов каждый, всего 16 000).', binary: 'Пока поддерживаются только текстовые файлы.', tooMany: 'Не более 3 файлов.',
-      model: 'Модель', auto: 'Авто', autoD: 'DODA выбирает сама (экономно)', fast: 'Быстро', fastD: 'Gemini 3.5 Flash-Lite: для простых вопросов', smart: 'Умно', smartD: 'Gemini 3.8 Flash: для сложных задач',
+      model: 'Модель', auto: 'Авто', autoD: 'DODA выбирает сама (экономно)', fast: 'Быстро', fastD: 'Быстрая и дешёвая модель: для простых вопросов', smart: 'Умно', smartD: 'Мощная модель: для сложных задач',
       copy: 'Копировать', copied: 'Скопировано',
-      note: 'DODA может ошибаться. Текст и запись голоса отправляются в Google Gemini: не пишите конфиденциальное.',
+      note: 'DODA может ошибаться. Текст и запись голоса отправляются в ИИ-сервис (Google Gemini, Anthropic Claude или OpenAI): не пишите конфиденциальное.',
       consentTitle: 'Голосовой ввод',
-      consentText: 'При разговоре голос записывается и отправляется в сервис Google Gemini для преобразования в текст. Запись не сохраняется на сервере DODA. Для этого нужно ваше согласие (позже можно отключить в аккаунте).',
+      consentText: 'При разговоре голос записывается и отправляется в ИИ-сервис (Google Gemini или OpenAI) для преобразования в текст. Запись не сохраняется на сервере DODA. Для этого нужно ваше согласие (позже можно отключить в аккаунте).',
       agree: 'Согласен', decline: 'Не сейчас',
       e_not_allowed: 'Разрешите доступ к микрофону (значок замка в адресной строке).', e_no_speech: 'Речь не распознана. Повторите.',
       e_lang: 'Этот язык не поддерживается браузером для голоса.', e_network: 'Не удалось подключиться к сервису распознавания речи.', e_other: 'Ошибка голосового ввода.',
@@ -144,6 +144,7 @@
   let abortCtl = null;
   let stick = true;
   let voiceAllowed = null;
+  let serverStt = null;
   let rec = null;
   let listening = false;
   let autoTimer = null;
@@ -249,6 +250,7 @@
     showEmpty();
     loadList();
     loadHistory();
+    api('/api/voice/status').then((r) => { if (r.status === 200) serverStt = !!r.data.server; if (root && ui.micBtn && !speechCtor() && !canRecord()) ui.micBtn.hidden = true; });
     api('/api/auth/me').then((r) => { voiceAllowed = !!(r.data.consents && r.data.consents.voice && r.data.consents.voice.accepted); });
     ui.input.focus({ preventScroll: true });
   }
@@ -574,7 +576,11 @@
     }
   }
 
-  const LABEL = { 'gemini-3.5-flash-lite': 'Flash-Lite', 'gemini-3.8-flash': 'Gemini 3.8 Flash' };
+  const LABEL = {
+    'gemini-3.5-flash-lite': 'Gemini Flash-Lite', 'gemini-3.8-flash': 'Gemini 3.8 Flash',
+    'claude-haiku-5-5': 'Claude Haiku 5.5', 'claude-sonnet-5-5': 'Claude Sonnet 5.5',
+    'gpt-6-luna': 'GPT-6 Luna', 'gpt-6.2-sol': 'GPT-6.2 Sol',
+  };
 
   async function send(text) {
     addUser(text);
@@ -706,7 +712,7 @@
 
   /* ---------- ovoz: yozib olish, to'lqin, Gemini orqali matn (Gemini ilovasi uslubida) ---------- */
   const REC_MAX_S = 90;
-  const canRecord = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  const canRecord = () => serverStt !== false && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
   function pickMime() {
     for (const m of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']) {
       try { if (MediaRecorder.isTypeSupported(m)) return m; } catch { /* ixtiyoriy */ }

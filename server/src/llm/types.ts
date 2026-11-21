@@ -15,7 +15,13 @@ export interface LlmCompletion {
   tokensOut: number;
 }
 
+export type Tier = "light" | "main" | "stt";
+
 export interface LlmProvider {
+  /** Berilgan daraja uchun model ro'yxati (ustuvorlik tartibida, sog'lomlari birinchi). Bo'lmasa, marshrutlar sozlamadagi Gemini nomlariga tayanadi. */
+  chain?(tier: Tier): string[];
+  /** Qaysi provayderlar yoqilgan (diagnostika va interfeys uchun) */
+  enabled?(): string[];
   /** Oqimsiz, qisqa vazifalar uchun (masalan, faktlarni ajratish). json=true bo'lsa JSON javob so'raladi */
   complete(p: { model: string; system: string; messages: LlmMessage[]; json?: boolean; signal?: AbortSignal }): Promise<LlmCompletion>;
   /** Ovozni matnga aylantiradi (audio base64). Audio saqlanmaydi. */

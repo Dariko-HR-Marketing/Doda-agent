@@ -9,6 +9,7 @@ import { LlmHttpError, type LlmEvent, type LlmMessage, type LlmProvider } from "
 import { MemoryMailer } from "../src/mailer.js";
 import { RateLimiter } from "../src/rateLimit.js";
 import { normalizeHistory } from "../src/routes/chat.js";
+import { LlmRouter } from "../src/llm/multi.js";
 
 const ORIGIN = "https://doda.tajriba24.uz";
 const PASS = "correct-horse-battery";
@@ -258,6 +259,53 @@ describe("sarf limiti", () => {
     const cookie = await signup("a@example.com");
     for (let i = 0; i < 20; i++) await chat(cookie, "salom " + i);
     expect((await chat(cookie, "yana")).res.status).toBe(429);
+  });
+});
+
+describe("ko'p provayderli marshrutlash (Gemini hududdan tashqari)", () => {
+  it("Gemini 400 (hudud) bersa Claude javob beradi; keyingi so'rovda Gemini chetlanadi; sarf Claude narxida", async () => {
+    const called: string[] = [];
+    const gem: LlmProvider = {
+      complete: async () => ({ text: "{}", tokensIn: 0, tokensOut: 0 }),
+      transcribe: async () => ({ text: "", tokensIn: 0, tokensOut: 0 }),
+      stream: (p) => (async function* (): AsyncIterable<LlmEvent> { called.push(p.model); throw new LlmHttpError(400); })(),
+    };
+    const cla: LlmProvider = {
+      complete: async () => ({ text: "{}", tokensIn: 0, tokensOut: 0 }),
+      transcribe: async () => ({ text: "", tokensIn: 0, tokensOut: 0 }),
+      stream: (p) => { called.push(p.model); return ok(["Claude ", "javobi"], 100, 50)({ model: p.model, system: p.system, messages: p.messages }); },
+    };
+    const router = new LlmRouter([
+      { name: "gemini", provider: gem, models: { light: "gemini-3.5-flash-lite", main: "gemini-3.8-flash", stt: "gemini-3.5-flash-lite" } },
+      { name: "anthropic", provider: cla, models: { light: "claude-haiku-5-5", main: "claude-sonnet-5-5" } },
+    ]);
+    build({}, router);
+    const cookie = await signup("a@example.com");
+    const first = await json("/api/chat", { message: "salom" }, { cookie });
+    const t1 = await first.text();
+    expect(t1).toContain("Claude ");
+    expect(t1).not.toContain("event: error");
+    expect(called).toEqual(["gemini-3.5-flash-lite", "claude-haiku-5-5"]);
+    await (await json("/api/chat", { message: "yana salom" }, { cookie })).text();
+    expect(called.slice(2)).toEqual(["claude-haiku-5-5"]);
+    const row = db.prepare("SELECT model, cost_usd FROM usage ORDER BY id LIMIT 1").get() as { model: string; cost_usd: number };
+    expect(row.model).toBe("claude-haiku-5-5");
+    expect(row.cost_usd).toBeCloseTo((100 * 0.1 + 50 * 0.5) / 1_000_000);
+  });
+
+  it("hamma provayder yiqilsa: tur bo'yicha xato (kalit/hudud)", async () => {
+    const bad = (code: number): LlmProvider => ({
+      complete: async () => ({ text: "", tokensIn: 0, tokensOut: 0 }),
+      transcribe: async () => ({ text: "", tokensIn: 0, tokensOut: 0 }),
+      stream: () => (async function* (): AsyncIterable<LlmEvent> { throw new LlmHttpError(code); })(),
+    });
+    build({}, new LlmRouter([
+      { name: "gemini", provider: bad(400), models: { light: "gemini-l", main: "gemini-m" } },
+      { name: "openai", provider: bad(402), models: { light: "gpt-l", main: "gpt-m" } },
+    ]));
+    const cookie = await signup("a@example.com");
+    const { events } = await chat(cookie, "salom");
+    expect(events.at(-1)!.data.code).toBe("llm_auth");
   });
 });
 

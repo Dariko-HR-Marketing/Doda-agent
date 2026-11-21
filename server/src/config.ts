@@ -29,6 +29,18 @@ const schema = z.object({
   GEMINI_MODEL_LIGHT: z.string().default("gemini-3.5-flash-lite"),
   /** Murakkab ishlar uchun asosiy model */
   GEMINI_MODEL_MAIN: z.string().default("gemini-3.8-flash"),
+  /** Claude (Anthropic). Kalit bo'lsa yoqiladi */
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL_LIGHT: z.string().default("claude-haiku-5-5"),
+  ANTHROPIC_MODEL_MAIN: z.string().default("claude-sonnet-5-5"),
+  /** OpenAI. Kalit bo'lsa yoqiladi */
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_BASE_URL: z.string().url().default("https://api.openai.com"),
+  OPENAI_MODEL_LIGHT: z.string().default("gpt-6-luna"),
+  OPENAI_MODEL_MAIN: z.string().default("gpt-6.2-sol"),
+  OPENAI_MODEL_STT: z.string().default("gpt-transcribe"),
+  /** Provayderlar ustuvorligi (vergul bilan). Kalitsizlari o'zi o'chiq turadi */
+  LLM_PRIORITY: z.string().default("gemini,anthropic,openai"),
   /** Ovozni matnga aylantirish modeli */
   GEMINI_MODEL_STT: z.string().default("gemini-3.5-flash-lite"),
   /** Bitta foydalanuvchi uchun oylik limit (USD) */

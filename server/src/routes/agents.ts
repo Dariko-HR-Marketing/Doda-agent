@@ -5,7 +5,7 @@ import type { Db } from "../db.js";
 import { agentSystem, buildBrief, parseReview, REVIEW_SYSTEM, TEMPLATES, templateById, type TaskContext } from "../agents.js";
 import { fail, type Env } from "../http.js";
 import { costUsd } from "../llm/pricing.js";
-import { LlmHttpError } from "../llm/types.js";
+import { ChainError, chainFor, legacyChain, runChain } from "../llm/multi.js";
 import { requireAuth } from "../session.js";
 
 export const agentRoutes = new Hono<Env>();
@@ -116,7 +116,7 @@ agentRoutes.post("/:id/run", async (c) => {
   const spent = (db.prepare("SELECT COALESCE(SUM(cost_usd),0) usd FROM usage WHERE user_id = ? AND created_at >= ?").get(user.id, monthStart) as { usd: number }).usd;
   if (spent >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
 
-  let model = body.data.tier === "light" ? config.GEMINI_MODEL_LIGHT : config.GEMINI_MODEL_MAIN;
+  const env = { llm, legacy: legacyChain(config) };
   const brief = buildBrief(body.data.request, task);
   const record = (m: string, tin: number, tout: number) => {
     const cost = costUsd(m, tin, tout, now());
@@ -125,18 +125,13 @@ agentRoutes.post("/:id/run", async (c) => {
   };
 
   let work;
+  let model = "";
   try {
-    try {
-      work = await llm.complete({ model, system: agentSystem(a), messages: [{ role: "user", content: brief }] });
-    } catch (e) {
-      // Asosiy model band yoki yopiq bo'lsa, arzon modelga o'tamiz
-      if (model === config.GEMINI_MODEL_LIGHT) throw e;
-      model = config.GEMINI_MODEL_LIGHT;
-      work = await llm.complete({ model, system: agentSystem(a), messages: [{ role: "user", content: brief }] });
-    }
+    const out = await runChain(chainFor(env, body.data.tier === "light" ? "light" : "main"), (m) => llm.complete({ model: m, system: agentSystem(a), messages: [{ role: "user", content: brief }] }));
+    work = out.result;
+    model = out.model;
   } catch (e) {
-    if (e instanceof LlmHttpError && e.status === 429) return fail(c, 429, "llm_rate_limited");
-    return fail(c, 503, "llm_unavailable");
+    return fail(c, e instanceof ChainError && e.code === "llm_rate_limited" ? 429 : 503, e instanceof ChainError ? e.code : "llm_unavailable");
   }
   let cost = record(model, work.tokensIn, work.tokensOut);
   const result = work.text.trim();
@@ -145,14 +140,16 @@ agentRoutes.post("/:id/run", async (c) => {
   // Tekshiruv: arzon model bilan. Xato bo'lsa ish saqlanadi, "tekshirilmadi" deb belgilanadi.
   let review = { verdict: "unchecked" as "ok" | "needs_work" | "unchecked", notes: "" };
   try {
-    const rv = await llm.complete({
-      model: config.GEMINI_MODEL_LIGHT,
-      system: REVIEW_SYSTEM,
-      messages: [{ role: "user", content: `BRIEF:\n"""${brief}"""\n\nAGENT NATIJASI:\n"""${result.slice(0, 12000)}"""` }],
-      json: true,
-    });
-    cost += record(config.GEMINI_MODEL_LIGHT, rv.tokensIn, rv.tokensOut);
-    review = parseReview(rv.text);
+    const rv = await runChain(chainFor(env, "light"), (m) =>
+      llm.complete({
+        model: m,
+        system: REVIEW_SYSTEM,
+        messages: [{ role: "user", content: `BRIEF:\n"""${brief}"""\n\nAGENT NATIJASI:\n"""${result.slice(0, 12000)}"""` }],
+        json: true,
+      }),
+    );
+    cost += record(rv.model, rv.result.tokensIn, rv.result.tokensOut);
+    review = parseReview(rv.result.text);
   } catch { /* tekshiruv ixtiyoriy */ }
 
   const id = randomUUID();

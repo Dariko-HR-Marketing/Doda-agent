@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Db } from "../db.js";
 import { fail, type Env } from "../http.js";
-import { LlmHttpError } from "../llm/types.js";
+import { ChainError, chainFor, legacyChain, runChain } from "../llm/multi.js";
 import { costUsd } from "../llm/pricing.js";
 import { requireAuth } from "../session.js";
 
@@ -124,13 +124,14 @@ taskRoutes.post("/plan", async (c) => {
   const spent = (db.prepare("SELECT COALESCE(SUM(cost_usd),0) usd FROM usage WHERE user_id = ? AND created_at >= ?").get(user.id, monthStart) as { usd: number }).usd;
   if (spent >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
 
-  const model = config.GEMINI_MODEL_MAIN;
   let r;
+  let model = "";
   try {
-    r = await llm.complete({ model, system: PLAN_SYSTEM, messages: [{ role: "user", content: '"""' + body.data.goal + '"""' }], json: true });
+    const out = await runChain(chainFor({ llm, legacy: legacyChain(config) }, "main"), (m) => llm.complete({ model: m, system: PLAN_SYSTEM, messages: [{ role: "user", content: '"""' + body.data.goal + '"""' }], json: true }));
+    r = out.result;
+    model = out.model;
   } catch (e) {
-    if (e instanceof LlmHttpError && e.status === 429) return fail(c, 429, "llm_rate_limited");
-    return fail(c, 503, "llm_unavailable");
+    return fail(c, e instanceof ChainError && e.code === "llm_rate_limited" ? 429 : e instanceof ChainError && e.code === "llm_auth" ? 503 : 503, e instanceof ChainError ? e.code : "llm_unavailable");
   }
   db.prepare("INSERT INTO usage (user_id, conversation_id, model, tokens_in, tokens_out, cost_usd, created_at) VALUES (?,?,?,?,?,?,?)").run(
     user.id, null, model, r.tokensIn, r.tokensOut, costUsd(model, r.tokensIn, r.tokensOut, now()), now(),

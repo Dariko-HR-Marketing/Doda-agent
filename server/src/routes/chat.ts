@@ -10,6 +10,7 @@ import { extractAndStore, loadMemoryContext, maybeMemorable } from "../memory.js
 import { ensureDefaults } from "../workspace.js";
 import { pickTier } from "../llm/router.js";
 import { LlmHttpError, type LlmMessage } from "../llm/types.js";
+import { chainFor, failureCode, legacyChain, runChain } from "../llm/multi.js";
 import { requireAuth } from "../session.js";
 
 export const chatRoutes = new Hono<Env>();
@@ -89,7 +90,8 @@ chatRoutes.post("/chat", async (c) => {
   const history = normalizeHistory(rows.reverse());
 
   const tier = body.data.tier === "auto" ? pickTier(message, rows.length) : body.data.tier;
-  const wanted = tier === "light" ? config.GEMINI_MODEL_LIGHT : config.GEMINI_MODEL_MAIN;
+  const chain = chainFor({ llm, legacy: legacyChain(config) }, tier === "light" ? "light" : "main");
+  const wanted = chain[0]!;
   const locale = user.locale;
   if (user.memoryEnabled) ensureDefaults(db, user.id, now());
   const system = systemPrompt(locale) + (user.memoryEnabled ? loadMemoryContext(db, user.id) : "");
@@ -105,8 +107,11 @@ chatRoutes.post("/chat", async (c) => {
 
     let model = wanted;
     await stream.writeSSE({ event: "meta", data: JSON.stringify({ conversationId, model, tier }) });
-    // Asosiy model xato bersa (band, bepul rejimda yopiq va h.k.) va hali matn kelmagan bo'lsa, arzon modelga o'tamiz
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // Provayder/model xato bersa (band, hudud, to'lov, kvota) va hali matn kelmagan bo'lsa, zanjirdagi keyingisiga o'tamiz
+    const statuses: number[] = [];
+    for (let attempt = 0; attempt < chain.length; attempt++) {
+      model = chain[attempt]!;
+      if (attempt > 0) await stream.writeSSE({ event: "meta", data: JSON.stringify({ conversationId, model, tier, fallback: true }) });
       try {
         for await (const ev of llm.stream({ model, system, messages: history, signal: controller.signal })) {
           if (ev.type === "delta") {
@@ -124,15 +129,14 @@ chatRoutes.post("/chat", async (c) => {
         failed = true;
         if (controller.signal.aborted) break;
         const status = e instanceof LlmHttpError ? e.status : 0;
+        statuses.push(status);
         console.error(`[chat] model xatosi (${model}, status ${status}):`, e instanceof Error ? e.message.slice(0, 200) : "noma'lum");
-        if (attempt === 0 && text.length === 0 && model !== config.GEMINI_MODEL_LIGHT) {
-          model = config.GEMINI_MODEL_LIGHT;
-          await stream.writeSSE({ event: "meta", data: JSON.stringify({ conversationId, model, tier: "light", fallback: true }) });
-          continue;
+        // Matn kelib bo'lgan bo'lsa, boshqa model bilan davom ettirmaymiz (aralash javob bo'lmasin)
+        if (text.length > 0 || attempt === chain.length - 1) {
+          const code = failureCode(statuses);
+          await stream.writeSSE({ event: "error", data: JSON.stringify({ code, message: t(code, locale) }) });
+          break;
         }
-        const code = status === 429 ? "llm_rate_limited" : status === 400 || status === 401 || status === 403 ? "llm_auth" : "llm_unavailable";
-        await stream.writeSSE({ event: "error", data: JSON.stringify({ code, message: t(code, locale) }) });
-        break;
       }
     }
 
@@ -167,10 +171,12 @@ chatRoutes.post("/chat", async (c) => {
         // Xotira: faqat shaxsiy/doimiy ma'lumotga o'xshash xabarlar uchun, arzon modelda, javobdan KEYIN
         if (user.memoryEnabled && maybeMemorable(message) && !controller.signal.aborted) {
           try {
-            const mem = await extractAndStore(db, llm, config.GEMINI_MODEL_LIGHT, user.id, message, now(), controller.signal);
+            const lightChain = chainFor({ llm, legacy: legacyChain(config) }, "light");
+            let memModel = lightChain[0]!;
+            const { result: mem } = await runChain(lightChain, (m) => { memModel = m; return extractAndStore(db, llm, m, user.id, message, now(), controller.signal); }, controller.signal);
             if (mem.tokensIn + mem.tokensOut > 0) {
               db.prepare("INSERT INTO usage (user_id, conversation_id, model, tokens_in, tokens_out, cost_usd, created_at) VALUES (?,?,?,?,?,?,?)").run(
-                user.id, conversationId, config.GEMINI_MODEL_LIGHT, mem.tokensIn, mem.tokensOut, costUsd(config.GEMINI_MODEL_LIGHT, mem.tokensIn, mem.tokensOut, now()), now(),
+                user.id, conversationId, memModel, mem.tokensIn, mem.tokensOut, costUsd(memModel, mem.tokensIn, mem.tokensOut, now()), now(),
               );
             }
             if (mem.added.length) await stream.writeSSE({ event: "memory", data: JSON.stringify({ facts: mem.added }) });
