@@ -5,7 +5,12 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-RUN npm ci
+# Beqaror tarmoqqa chidamli: qayta urinishlar, kam parallel ulanish
+RUN npm config set fetch-retries 6 \
+ && npm config set fetch-retry-mintimeout 15000 \
+ && npm config set fetch-retry-maxtimeout 120000 \
+ && npm config set maxsockets 2 \
+ && npm ci --no-audit --no-fund
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build && npm prune --omit=dev

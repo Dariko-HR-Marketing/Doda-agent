@@ -103,8 +103,9 @@ TXT
     while true; do
       read -r -s -p "        Client secret: " G_SECRET; echo
       G_SECRET="${G_SECRET//[[:space:]]/}"
-      [[ "$G_SECRET" == GOCSPX-* ]] && break
-      warn "'GOCSPX-' bilan boshlanishi kerak. Qayta kiriting."
+      if [[ "$G_SECRET" != GOCSPX-* ]]; then warn "'GOCSPX-' bilan boshlanishi kerak. Qayta kiriting."; continue; fi
+      if ((${#G_SECRET} > 45)); then warn "Juda uzun (${#G_SECRET} belgi, odatda 35). Ikki marta qo'yilgan bo'lishi mumkin. Qayta kiriting."; continue; fi
+      break
     done
   fi
 
@@ -162,7 +163,15 @@ fi
 say "5/7 Konteynerni qurish va ishga tushirish"
 cd "$HERE"
 if ((DRY)); then note "(dry-run) CADDY_NETWORK=$NET docker compose up -d --build"
-else CADDY_NETWORK="$NET" docker compose up -d --build; fi
+else
+  built=0
+  for attempt in 1 2 3; do
+    if CADDY_NETWORK="$NET" docker compose up -d --build; then built=1; break; fi
+    warn "Qurish $attempt-urinishda yiqildi (ko'pincha vaqtinchalik tarmoq xatosi)."
+    [[ $attempt -lt 3 ]] && { note "10 soniyadan keyin qayta urinamiz..."; sleep ${RETRY_SLEEP:-10}; }
+  done
+  ((built)) || die "Server qurilmadi (3 urinish). Yuqoridagi xato matnini yuboring. Caddy'ga TEGILMADI."
+fi
 
 say "6/7 Sog'liq tekshiruvi"
 if ((DRY)); then note "(dry-run) konteyner 'healthy' bo'lishi kutiladi"

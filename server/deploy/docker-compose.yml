@@ -6,6 +6,7 @@ services:
   doda-server:
     build:
       context: ..
+      network: host   # faqat qurish vaqtida (npm yuklash); ishlash vaqtida ta'sir qilmaydi
     container_name: doda-server
     restart: unless-stopped
     env_file: ../.env
