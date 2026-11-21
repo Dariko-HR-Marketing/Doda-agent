@@ -133,7 +133,7 @@ TXT
 
   echo
   echo "  Kiritilganlar:"
-  echo "    Google Client ID : ${G_ID:-(o'chiq)}"
+  echo "    Google Client ID : ${G_ID:-(ochiq)}"
   echo "    Client secret    : ${G_SECRET:+kiritildi (${#G_SECRET} belgi)}"
   echo "    Gmail            : $S_USER"
   echo "    App Password     : kiritildi (16 belgi)"
