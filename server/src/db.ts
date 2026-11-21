@@ -118,6 +118,33 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX file_versions_file ON file_versions(file_id, version);
   `,
+  `
+  CREATE TABLE tasks (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title      TEXT NOT NULL,
+    goal       TEXT NOT NULL DEFAULT '',
+    status     TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','done','archived')),
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE INDEX tasks_user ON tasks(user_id, updated_at);
+  CREATE TABLE task_items (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id  TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    stage    INTEGER NOT NULL CHECK (stage BETWEEN 1 AND 5),
+    text     TEXT NOT NULL,
+    done     INTEGER NOT NULL DEFAULT 0,
+    position INTEGER NOT NULL
+  );
+  CREATE INDEX task_items_task ON task_items(task_id, stage, position);
+  CREATE TABLE task_stages (
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    stage   INTEGER NOT NULL CHECK (stage BETWEEN 1 AND 5),
+    name    TEXT NOT NULL,
+    PRIMARY KEY (task_id, stage)
+  );
+  `,
 ];
 
 export function openDb(path: string): Db {

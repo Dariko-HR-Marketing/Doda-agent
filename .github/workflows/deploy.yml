@@ -26,7 +26,7 @@ jobs:
       - name: Faqat sayt fayllarini yig'ish
         run: |
           mkdir _site
-          cp index.html app.css app.js auth.css auth.js app-min.css app-min.js workspace.css workspace.js legal.html _site/
+          cp index.html app.css app.js auth.css auth.js app-min.css app-min.js workspace.css workspace.js tasks.css tasks.js legal.html _site/
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

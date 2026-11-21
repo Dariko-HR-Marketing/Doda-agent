@@ -8,6 +8,7 @@ import { accountRoutes } from "./routes/account.js";
 import { googleRoutes } from "./routes/google.js";
 import { chatRoutes } from "./routes/chat.js";
 import { workspaceRoutes } from "./routes/workspace.js";
+import { taskRoutes } from "./routes/tasks.js";
 
 export function createApp(input: Deps): Hono<Env> {
   const deps: ResolvedDeps = {
@@ -75,6 +76,7 @@ export function createApp(input: Deps): Hono<Env> {
   app.route("/api/auth/google", googleRoutes);
   app.route("/api/account", accountRoutes);
   app.route("/api/workspace", workspaceRoutes);
+  app.route("/api/tasks", taskRoutes);
   app.route("/api", chatRoutes);
 
   app.notFound((c) => fail(c, 404, "not_found"));

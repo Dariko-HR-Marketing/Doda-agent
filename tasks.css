@@ -1,0 +1,41 @@
+/* DODA: vazifalar oynasi */
+.tk{color:#e8f4f7;font-family:Manrope,system-ui,sans-serif;display:grid;gap:18px;padding-bottom:40px}
+.tk h2{margin:0 0 10px;font-size:18px}
+.tk-muted{color:#6f939d;font-size:13px}
+.tk-new{padding:16px;background:#0e2434;border:1px solid #28495b;border-radius:18px}
+.tk-goal{display:block;width:100%;box-sizing:border-box;resize:vertical;min-height:80px;padding:12px 14px;border:1px solid #28495b;border-radius:12px;background:#0a2231;color:#eefafc;font:inherit;font-size:15px;line-height:1.5}
+.tk-goal:focus,.tk-title:focus,.tk-stage-name:focus,.tk-add-in:focus{outline:0;border-color:#4fdc7c}
+.tk-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.tk-row.end{margin-top:6px}
+.tk-btn{min-height:42px;padding:0 18px;border:1px solid #356a7d;border-radius:12px;background:#0f2c3c;color:#e3f1f5;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.tk-btn:hover:not(:disabled){background:#14394d}.tk-btn:disabled{opacity:.55;cursor:default}
+.tk-btn.primary{border:0;background:linear-gradient(135deg,#6af08a,#27c07a);color:#052c1f}
+.tk-btn.danger{color:#ffb3bd;border-color:#6b3340}
+.tk-msg{min-height:18px;margin-top:8px;color:#ffc5cd;font-size:13px}
+.tk-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.tk-card{display:grid;gap:6px;width:100%;padding:14px 16px;text-align:left;border:1px solid #234a5d;border-radius:14px;background:#0b2233;color:inherit;font:inherit;cursor:pointer}
+.tk-card:hover{background:#0f2c3e}.tk-card.done{opacity:.7}
+.tk-card-t{font-weight:700;font-size:15.5px;overflow-wrap:anywhere}.tk-card-m{font-size:12.5px;color:#8fb2bb}
+.tk-bar{height:6px;border-radius:99px;background:#16364a;overflow:hidden}.tk-bar i{display:block;height:100%;background:linear-gradient(90deg,#6af08a,#27c07a);border-radius:99px;transition:width .25s}
+.tk-back{justify-self:start;background:none;border:0;color:#8fe3ac;font:inherit;font-weight:700;cursor:pointer;padding:6px 0}
+.tk-title{width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:#f1fbfd;font:inherit;font-size:24px;font-weight:800}
+.tk-title:hover{border-color:#234a5d}
+.tk-goal-txt{margin:0;color:#a9c3ca;font-size:14.5px;line-height:1.55;overflow-wrap:anywhere}
+.tk-prog{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;font-size:13px;color:#a9c3ca}
+.tk-stages{display:grid;gap:12px}
+.tk-stage{padding:14px 14px 12px;background:#0b2233;border:1px solid #1f4252;border-radius:16px}
+.tk-stage-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.tk-num{flex:none;width:26px;height:26px;border-radius:8px;background:#12384a;display:grid;place-items:center;font-size:13px;font-weight:800;color:#8fe3ac}
+.tk-stage-name{flex:1;min-width:0;padding:6px 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:#eefafc;font:inherit;font-weight:700;font-size:15.5px}
+.tk-stage-name:hover{border-color:#234a5d}
+.tk-items{list-style:none;margin:0 0 6px;padding:0}
+.tk-items li{display:flex;align-items:flex-start;gap:10px;padding:7px 4px;border-radius:8px}
+.tk-items li:hover{background:#0f2b3d}
+.tk-items input[type=checkbox]{flex:none;width:18px;height:18px;margin-top:3px;accent-color:#27c07a}
+.tk-items label{flex:1;min-width:0;font-size:15px;line-height:1.45;overflow-wrap:anywhere;cursor:pointer}
+.tk-items li.done label{color:#6f939d;text-decoration:line-through}
+.tk-x{flex:none;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#7fa0aa;font-size:18px;cursor:pointer;opacity:.5}
+.tk-items li:hover .tk-x,.tk-x:focus-visible{opacity:1}.tk-x:hover{background:#1a4a60;color:#fff}
+.tk-add-in{width:100%;box-sizing:border-box;padding:9px 12px;border:1px dashed #2a5367;border-radius:10px;background:transparent;color:#eefafc;font:inherit;font-size:14px}
+.tk button:focus-visible{outline:2px solid #8df5a2;outline-offset:2px}
+@media (max-width:600px){.tk-title{font-size:20px}.tk-x{opacity:1}}
+@media (prefers-reduced-motion:reduce){.tk-bar i{transition:none}}

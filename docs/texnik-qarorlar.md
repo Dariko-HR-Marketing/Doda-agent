@@ -23,3 +23,4 @@
 - SMTP: pochta yuboruvchi xizmat kerak (hozir xat konsolga chiqadi).
 - Google OAuth: Google Cloud'da Client ID/Secret kerak.
 - Ovoz yozuvi biometrik hisoblanishi mumkin: yurist bilan aniqlash.
+| 16 | Vazifalar (4-bosqich) | `tasks`, `task_stages`, `task_items` jadvallari; maqsad, 5 bosqich, checklist, holat (faol/bajarilgan/arxiv). DODA maqsaddan reja tuzadi (asosiy model, JSON, sarf `usage` ga yoziladi, 6 so'rov/10 daqiqa). Hamma so'rov egasi bo'yicha filtrlangan. |
