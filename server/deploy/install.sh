@@ -80,17 +80,65 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 if ((write_env)) && ((DRY)); then note "(dry-run) .env so'raladi va yoziladi"; write_env=0; fi
 if ((write_env)); then
-  echo "  Maxfiy qiymatlar ekranda ko'rinmaydi va hech qayerga yuborilmaydi."
-  read -r -p "  Google Client ID (bo'sh = Google kirishi o'chiq): " G_ID
+  cat <<'TXT'
+  Hozir 5 ta savol bo'ladi. Har birini o'qing, kerakli qiymatni qo'ying va Enter bosing.
+  MAXFIY qiymatlar yozilganda/qo'yilganda ekranda HECH NARSA ko'rinmaydi: bu normal.
+  Qo'yish: sichqonchaning o'ng tugmasi yoki Ctrl+Shift+V.
+TXT
+
+  echo
+  echo "  [1/5] GOOGLE CLIENT ID (Google Cloud > Credentials). '.apps.googleusercontent.com' bilan tugaydi."
+  while true; do
+    read -r -p "        Client ID: " G_ID
+    G_ID="${G_ID//[[:space:]]/}"
+    [[ "$G_ID" == *.apps.googleusercontent.com ]] && break
+    if [[ -z "$G_ID" ]] && yn "Bo'sh qoldirildi: Google bilan kirish O'CHIQ bo'ladi. Shundayligicha davom etamizmi?"; then break; fi
+    warn "Bunday ko'rinmaydi. Qayta kiriting."
+  done
+
   G_SECRET=""
-  if [[ -n "$G_ID" ]]; then read -r -s -p "  Google Client secret (YANGI, almashtirilgan): " G_SECRET; echo; fi
-  read -r -p "  Gmail manzili (SMTP_USER): " S_USER
-  read -r -s -p "  Gmail App Password (16 belgi): " S_PASS; echo
-  S_PASS="${S_PASS// /}"
-  [[ -n "$S_USER" && -n "$S_PASS" ]] || die "Pochta ma'lumotlari majburiy (productionda xat yuborish shart)"
-  read -r -p "  Xatlardagi 'From' [DODA <$S_USER>]: " M_FROM
-  M_FROM="${M_FROM:-DODA <$S_USER>}"
-  read -r -s -p "  Gemini API kaliti (hozir bo'sh qoldirsa bo'ladi): " GEM; echo
+  if [[ -n "$G_ID" ]]; then
+    echo
+    echo "  [2/5] GOOGLE CLIENT SECRET: YANGI (almashtirilgan). 'GOCSPX-' bilan boshlanadi. Ko'rinmaydi."
+    while true; do
+      read -r -s -p "        Client secret: " G_SECRET; echo
+      G_SECRET="${G_SECRET//[[:space:]]/}"
+      [[ "$G_SECRET" == GOCSPX-* ]] && break
+      warn "'GOCSPX-' bilan boshlanishi kerak. Qayta kiriting."
+    done
+  fi
+
+  echo
+  echo "  [3/5] GMAIL MANZIL: App Password olingan Gmail (masalan: ism@gmail.com)."
+  while true; do
+    read -r -p "        Gmail: " S_USER
+    S_USER="${S_USER//[[:space:]]/}"
+    [[ "$S_USER" =~ ^[^@]+@[^@]+\.[^@]+$ ]] && break
+    warn "Pochta manzili bo'lishi kerak (@ bilan). Qayta kiriting."
+  done
+
+  echo
+  echo "  [4/5] GMAIL APP PASSWORD: 16 ta harf (probel bo'lsa ham mayli). Oddiy Gmail paroli EMAS. Ko'rinmaydi."
+  while true; do
+    read -r -s -p "        App Password: " S_PASS; echo
+    S_PASS="${S_PASS//[[:space:]]/}"
+    [[ "$S_PASS" =~ ^[A-Za-z0-9]{16}$ ]] && break
+    warn "16 ta harf bo'lishi kerak (siz ${#S_PASS} ta kiritdingiz). Qayta kiriting."
+  done
+
+  echo
+  echo "  [5/5] GEMINI API KALITI: hozir kerak emas. Shunchaki Enter bosing."
+  read -r -s -p "        Gemini (Enter): " GEM; echo
+  M_FROM="DODA <$S_USER>"
+
+  echo
+  echo "  Kiritilganlar:"
+  echo "    Google Client ID : ${G_ID:-(o'chiq)}"
+  echo "    Client secret    : ${G_SECRET:+kiritildi (${#G_SECRET} belgi)}"
+  echo "    Gmail            : $S_USER"
+  echo "    App Password     : kiritildi (16 belgi)"
+  if [[ -n "$GEM" ]]; then echo "    Gemini           : kiritildi"; else echo "    Gemini           : yoq (keyin qo'shiladi)"; fi
+  yn "Hammasi to'g'rimi? (Yo'q = to'xtaydi, qaytadan ishga tushirasiz)" || die "To'xtatildi. Hech narsa yozilmadi."
   umask 077
   {
     echo "APP_ORIGIN=$APP_ORIGIN"
