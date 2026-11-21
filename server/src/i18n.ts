@@ -45,6 +45,17 @@ const messages = {
     uz: "Model bu so‘rovga javob qaytarmadi. Savolni boshqacha ifodalab ko‘ring.",
     ru: "Модель не вернула ответ на этот запрос. Попробуйте переформулировать вопрос.",
   },
+  invalid_path: {
+    uz: "Fayl yo‘li noto‘g‘ri. Faqat harf, raqam, probel, “-”, “_”, “.” va “/” (ko‘pi bilan 4 daraja) va .md yoki .txt kengaytmasi mumkin.",
+    ru: "Недопустимый путь к файлу. Допустимы буквы, цифры, пробел, «-», «_», «.», «/» (не более 4 уровней) и расширение .md или .txt.",
+  },
+  file_too_large: { uz: "Fayl juda katta (ko‘pi bilan 64 KB).", ru: "Файл слишком большой (не более 64 КБ)." },
+  too_many_files: { uz: "Fayllar soni chegarasiga yetildi (200 ta).", ru: "Достигнут лимит числа файлов (200)." },
+  storage_full: { uz: "Ishchi maydon hajmi chegarasiga yetildi (5 MB).", ru: "Достигнут лимит объёма рабочей области (5 МБ)." },
+  conflict: {
+    uz: "Fayl siz ochganingizdan keyin o‘zgargan (masalan, DODA yozgan). Faylni qayta oching va o‘zgarishni qayta kiriting.",
+    ru: "Файл изменился после того, как вы его открыли (например, записал DODA). Откройте файл заново и повторите правку.",
+  },
   not_found: { uz: "Topilmadi.", ru: "Не найдено." },
   server_error: { uz: "Ichki xatolik.", ru: "Внутренняя ошибка." },
 } as const;

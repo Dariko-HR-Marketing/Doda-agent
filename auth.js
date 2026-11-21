@@ -28,7 +28,7 @@
       sentTitle: 'Pochtangizni tekshiring', sentText: 'Tasdiqlash havolasi yuborildi. Xat kelmasa, “Spam” papkasini ham ko‘ring. Havola 24 soat amal qiladi.', back: 'Kirish sahifasiga qaytish',
       verifying: 'Pochta tasdiqlanmoqda…', verifiedTitle: 'Pochta tasdiqlandi', verifiedText: 'Endi tizimga kirishingiz mumkin.',
       offlineTitle: 'Server bilan aloqa yo‘q', offlineText: 'Hisob tizimi hozir ishlamayapti. Namuna rejimida davom etishingiz mumkin: ma’lumotlar faqat shu qurilmada qoladi.', demo: 'Namuna rejimida davom etish', retry: 'Qayta urinish',
-      account: 'Akkaunt', voiceConsent: 'Ovoz yozuvlarini qayta ishlashga rozilik', logout: 'Chiqish', close: 'Yopish',
+      account: 'Akkaunt', memoryOn: 'DODA suhbatlardan eslab qolsin va saqlangan ma’lumotdan foydalansin', memoryHint: 'Fayllarni “Bilim markazi” sahifasida ko‘rasiz va tahrirlaysiz.', voiceConsent: 'Ovoz yozuvlarini qayta ishlashga rozilik', logout: 'Chiqish', close: 'Yopish',
       deleteTitle: 'Akkauntni o‘chirish', deleteText: 'Akkaunt va unga bog‘liq barcha ma’lumot butunlay o‘chiriladi. Buni qaytarib bo‘lmaydi.', deleteAck: 'Tushundim, o‘chirilsin', deleteBtn: 'Akkauntni o‘chirish',
       forgot: 'Parolni unutdingizmi?', forgotTitle: 'Parolni tiklash', forgotText: 'Pochtangizni kiriting: tiklash havolasini yuboramiz.', sendLink: 'Havola yuborish',
       sentResetText: 'Agar bu pochta ro‘yxatdan o‘tgan bo‘lsa, tiklash havolasi yuborildi. Havola 1 soat amal qiladi. Xat kelmasa, “Spam” papkasini ko‘ring.',
@@ -55,7 +55,7 @@
       sentTitle: 'Проверьте почту', sentText: 'Ссылка для подтверждения отправлена. Если письма нет, проверьте папку «Спам». Ссылка действует 24 часа.', back: 'Вернуться ко входу',
       verifying: 'Подтверждаем почту…', verifiedTitle: 'Почта подтверждена', verifiedText: 'Теперь вы можете войти в систему.',
       offlineTitle: 'Нет связи с сервером', offlineText: 'Система аккаунтов сейчас недоступна. Можно продолжить в демо-режиме: данные останутся только на этом устройстве.', demo: 'Продолжить в демо-режиме', retry: 'Повторить',
-      account: 'Аккаунт', voiceConsent: 'Согласие на обработку голосовых записей', logout: 'Выйти', close: 'Закрыть',
+      account: 'Аккаунт', memoryOn: 'DODA запоминает из диалогов и использует сохранённые данные', memoryHint: 'Файлы можно посмотреть и изменить в «Центре знаний».', voiceConsent: 'Согласие на обработку голосовых записей', logout: 'Выйти', close: 'Закрыть',
       deleteTitle: 'Удаление аккаунта', deleteText: 'Аккаунт и все связанные данные будут удалены безвозвратно. Это действие нельзя отменить.', deleteAck: 'Понимаю, удалить', deleteBtn: 'Удалить аккаунт',
       forgot: 'Забыли пароль?', forgotTitle: 'Восстановление пароля', forgotText: 'Введите почту: мы отправим ссылку для восстановления.', sendLink: 'Отправить ссылку',
       sentResetText: 'Если эта почта зарегистрирована, ссылка для восстановления отправлена. Она действует 1 час. Если письма нет, проверьте папку «Спам».',
@@ -470,6 +470,10 @@
     voice.checked = me.data.consents?.voice?.accepted === true;
     voice.addEventListener('change', async () => { voice.disabled = true; await api('/api/account/consents', { method: 'POST', body: { type: 'voice', accepted: voice.checked } }); voice.disabled = false; });
 
+    const mem = h('input', { type: 'checkbox', id: 'acc-mem' });
+    mem.checked = !(me.data.user && me.data.user.memoryEnabled === false);
+    mem.addEventListener('change', async () => { mem.disabled = true; await api('/api/account/memory', { method: 'POST', body: { enabled: mem.checked } }); mem.disabled = false; });
+
     const ack = h('input', { type: 'checkbox', id: 'acc-ack' });
     const del = h('button', { class: 'auth-danger', disabled: true, onclick: async () => {
       del.disabled = true;
@@ -482,6 +486,8 @@
     dlg.append(
       h('div', { class: 'modal-head' }, h('div', {}, h('span', { class: 'section-kicker' }, tr('account').toUpperCase()), h('h2', { id: 'acc-title' }, user.email)),
         h('button', { class: 'close-button', 'aria-label': tr('close'), onclick: () => dlg.close() }, '×')),
+      h('label', { class: 'auth-check' }, mem, h('span', {}, tr('memoryOn'))),
+      h('p', { class: 'auth-p' }, tr('memoryHint')),
       h('label', { class: 'auth-check' }, voice, h('span', {}, tr('voiceConsent'))),
       h('div', { class: 'auth-actions' },
         h('button', { class: 'auth-secondary', onclick: async () => { await api('/api/auth/logout', { method: 'POST', body: {} }); dlg.close(); setUser(null); showAuth('login', { notice: null }); } }, tr('logout'))),

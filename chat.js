@@ -14,12 +14,12 @@
     uz: {
       you: 'SIZ', typing: 'Yozmoqda…', fresh: '＋ Yangi suhbat', netErr: 'Aloqa xatosi. Qayta urinib ko‘ring.',
       hint: 'Suhbat serverda saqlanadi. Yozgan matningiz Google Gemini xizmatiga yuboriladi (chet elda qayta ishlanadi), maxfiy ma’lumot yozmang.',
-      month: 'oy', greeting: 'Eshitaman. Savol bering yoki fikr almashamiz. Agentlar va topshiriqlar keyingi bosqichda ulanadi.',
+      month: 'oy', remembered: 'Eslab qoldim: ', rememberedHint: ' (Bilim markazida ko‘rish va tahrirlash mumkin)', greeting: 'Eshitaman. Savol bering yoki fikr almashamiz. Agentlar va topshiriqlar keyingi bosqichda ulanadi.',
     },
     ru: {
       you: 'ВЫ', typing: 'Печатает…', fresh: '＋ Новый диалог', netErr: 'Ошибка связи. Повторите попытку.',
       hint: 'Диалог хранится на сервере. Ваш текст отправляется в сервис Google Gemini (обрабатывается за границей), не пишите конфиденциальные данные.',
-      month: 'мес.', greeting: 'Слушаю. Задайте вопрос или обсудим идею. Агенты и задачи подключим на следующем этапе.',
+      month: 'мес.', remembered: 'Запомнил: ', rememberedHint: ' (можно посмотреть и изменить в «Центре знаний»)', greeting: 'Слушаю. Задайте вопрос или обсудим идею. Агенты и задачи подключим на следующем этапе.',
     },
   };
   const tr = (k) => T[lang()][k] ?? k;
@@ -163,6 +163,10 @@
         } else if (event === 'done') {
           const label = MODEL_LABEL[model] || model;
           note(reply.body, `${label} · ${data.tokensIn + data.tokensOut} token · $${data.costUsd.toFixed(4)} · ${tr('month')}: $${data.monthUsd.toFixed(2)} / $${data.budgetUsd}`);
+          setBusy(false); // xotirani ajratish keyin davom etishi mumkin: yozishni kutdirmaymiz
+        } else if (event === 'memory') {
+          note(reply.body, tr('remembered') + data.facts.join('; ') + tr('rememberedHint'), 'chat-foot mem');
+          document.dispatchEvent(new CustomEvent('doda:memory'));
         }
       });
       if (!got) { reply.el.classList.remove('typing'); }

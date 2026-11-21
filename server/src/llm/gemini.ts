@@ -1,4 +1,4 @@
-import { LlmHttpError, type LlmEvent, type LlmMessage, type LlmProvider } from "./types.js";
+import { LlmHttpError, type LlmCompletion, type LlmEvent, type LlmMessage, type LlmProvider } from "./types.js";
 
 interface GeminiChunk {
   candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>;
@@ -14,6 +14,26 @@ export class GeminiProvider implements LlmProvider {
     private timeoutMs = 90_000,
     private baseUrl = "https://generativelanguage.googleapis.com",
   ) {}
+
+  async complete(p: { model: string; system: string; messages: LlmMessage[]; json?: boolean; signal?: AbortSignal }): Promise<LlmCompletion> {
+    const url = `${this.baseUrl}/v1beta/models/${encodeURIComponent(p.model)}:generateContent`;
+    const signals = [AbortSignal.timeout(this.timeoutMs), ...(p.signal ? [p.signal] : [])];
+    const res = await this.fetchFn(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": this.apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: p.system }] },
+        contents: p.messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+        ...(p.json ? { generationConfig: { responseMimeType: "application/json" } } : {}),
+      }),
+      signal: AbortSignal.any(signals),
+    });
+    if (!res.ok) throw new LlmHttpError(res.status);
+    const j = (await res.json()) as GeminiChunk;
+    const text = (j.candidates?.[0]?.content?.parts ?? []).filter((x) => x.text && !x.thought).map((x) => x.text).join("");
+    const u = j.usageMetadata;
+    return { text, tokensIn: u?.promptTokenCount ?? 0, tokensOut: (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0) };
+  }
 
   async *stream(p: { model: string; system: string; messages: LlmMessage[]; signal?: AbortSignal }): AsyncIterable<LlmEvent> {
     const url = `${this.baseUrl}/v1beta/models/${encodeURIComponent(p.model)}:streamGenerateContent?alt=sse`;

@@ -9,7 +9,15 @@ export type LlmEvent =
   | { type: "delta"; text: string }
   | { type: "usage"; tokensIn: number; tokensOut: number };
 
+export interface LlmCompletion {
+  text: string;
+  tokensIn: number;
+  tokensOut: number;
+}
+
 export interface LlmProvider {
+  /** Oqimsiz, qisqa vazifalar uchun (masalan, faktlarni ajratish). json=true bo'lsa JSON javob so'raladi */
+  complete(p: { model: string; system: string; messages: LlmMessage[]; json?: boolean; signal?: AbortSignal }): Promise<LlmCompletion>;
   /** Javobni oqim bilan qaytaradi; oxirida 'usage' hodisasi */
   stream(p: { model: string; system: string; messages: LlmMessage[]; signal?: AbortSignal }): AsyncIterable<LlmEvent>;
 }

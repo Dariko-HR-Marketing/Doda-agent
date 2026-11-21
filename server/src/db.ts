@@ -95,6 +95,29 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX usage_user ON usage(user_id, created_at);
   `,
+  `
+  ALTER TABLE users ADD COLUMN memory_enabled INTEGER NOT NULL DEFAULT 1;
+  CREATE TABLE files (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    path       TEXT NOT NULL,
+    content    TEXT NOT NULL,
+    version    INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    updated_by TEXT NOT NULL CHECK (updated_by IN ('user','doda')),
+    UNIQUE (user_id, path)
+  );
+  CREATE TABLE file_versions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_id    INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    version    INTEGER NOT NULL,
+    content    TEXT NOT NULL,
+    updated_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX file_versions_file ON file_versions(file_id, version);
+  `,
 ];
 
 export function openDb(path: string): Db {

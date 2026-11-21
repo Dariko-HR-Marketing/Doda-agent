@@ -7,6 +7,7 @@ import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/account.js";
 import { googleRoutes } from "./routes/google.js";
 import { chatRoutes } from "./routes/chat.js";
+import { workspaceRoutes } from "./routes/workspace.js";
 
 export function createApp(input: Deps): Hono<Env> {
   const deps: ResolvedDeps = {
@@ -31,7 +32,10 @@ export function createApp(input: Deps): Hono<Env> {
     if (config.isProd) c.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   });
 
-  app.use("/api/*", bodyLimit({ maxSize: 16 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") }));
+  // So'rov hajmi: odatda 16 KB; ishchi maydon fayllari uchun kattaroq (fayl ko'pi bilan 64 KB + JSON/Unicode qoldig'i)
+  const small = bodyLimit({ maxSize: 16 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") });
+  const large = bodyLimit({ maxSize: 300 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") });
+  app.use("/api/*", (c, next) => (c.req.path.startsWith("/api/workspace/") ? large : small)(c, next));
 
   // CORS: faqat bizning frontend manzilimiz
   app.use("/api/*", async (c, next) => {
@@ -45,7 +49,7 @@ export function createApp(input: Deps): Hono<Env> {
       c.header("Vary", "Origin");
     }
     if (c.req.method === "OPTIONS") {
-      c.header("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+      c.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
       c.header("Access-Control-Allow-Headers", "Content-Type,Accept-Language");
       c.header("Access-Control-Max-Age", "600");
       return c.body(null, 204);
@@ -65,6 +69,7 @@ export function createApp(input: Deps): Hono<Env> {
   app.route("/api/auth", authRoutes);
   app.route("/api/auth/google", googleRoutes);
   app.route("/api/account", accountRoutes);
+  app.route("/api/workspace", workspaceRoutes);
   app.route("/api", chatRoutes);
 
   app.notFound((c) => fail(c, 404, "not_found"));

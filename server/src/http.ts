@@ -25,6 +25,7 @@ export interface AuthedUser {
   email: string;
   locale: Locale;
   emailVerified: boolean;
+  memoryEnabled: boolean;
 }
 
 export type Env = {
@@ -45,7 +46,7 @@ export function clientIp(c: Context<Env>, trustProxy: boolean): string {
   return incoming?.socket?.remoteAddress ?? "unknown";
 }
 
-export function fail(c: Context<Env>, status: 400 | 401 | 403 | 404 | 429 | 500 | 503, code: MessageCode, extra: object = {}) {
+export function fail(c: Context<Env>, status: 400 | 401 | 403 | 404 | 409 | 429 | 500 | 503, code: MessageCode, extra: object = {}) {
   return c.json({ error: { code, message: t(code, c.get("locale")), ...extra } }, status);
 }
 

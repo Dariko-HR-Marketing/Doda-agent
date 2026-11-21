@@ -1,0 +1,33 @@
+/* DODA: ishchi maydon */
+.ws{margin:0 0 20px;padding:20px 22px}
+.ws-head h2{margin:0 0 6px;font-size:19px}
+.ws-head p{margin:0 0 16px;font-size:12.5px;line-height:1.6;color:#a9c3ca;max-width:760px}
+.ws-body{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:16px}
+.ws-side{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ws-side-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ws-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:420px;overflow:auto}
+.ws-item{width:100%;text-align:left;padding:9px 11px;border:1px solid #29515f;border-radius:11px;background:#0d2a3a;color:#e5f3f6;display:grid;gap:2px;min-height:44px}
+.ws-item:hover{background:#12374a}
+.ws-item.on{border-color:#4fdc7c;background:#143f45}
+.ws-item-path{font-size:13px;font-weight:700;overflow-wrap:anywhere}
+.ws-item-meta{font-size:11px;color:#8fb2bb}
+.ws-main{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ws-main-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;min-height:22px}
+.ws-file-title{font-weight:800;font-size:14px;overflow-wrap:anywhere}
+.ws-status{font-size:12px;color:#8fb2bb}
+.ws-status.ok{color:#7be8a0}
+.ws-status.warn{color:#ffd27a}
+.ws-status.err{color:#ffb3bd}
+.ws-area{width:100%;min-height:340px;resize:vertical;padding:12px 13px;border:1px solid #2f5767;border-radius:12px;background:#0a2231;color:#ecf6fa;font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;tab-size:2}
+.ws-area:disabled{opacity:.5}
+.ws-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ws-btn{min-height:38px;padding:0 14px;border:1px solid #356a7d;border-radius:10px;background:#0f2c3c;color:#e3f1f5;font-size:13px;font-weight:700}
+.ws-btn:hover:not(:disabled){background:#143a4d}
+.ws-btn.primary{border:0;background:linear-gradient(135deg,#6af08a,#27c07a);color:#052c1f}
+.ws-btn.danger{border-color:#8a3b46;background:#3a1620;color:#ffd7dc;margin-left:auto}
+.ws-btn:disabled{opacity:.45;cursor:not-allowed}
+.ws-input,.ws-select{min-height:38px;padding:0 10px;border:1px solid #2f5767;border-radius:10px;background:#0a2231;color:#ecf6fa;font-size:13px;min-width:0}
+.ws-newrow{display:flex;gap:6px}
+.ws-newrow[hidden]{display:none}
+.ws-newrow .ws-input{flex:1}
+@media (max-width:820px){.ws-body{grid-template-columns:1fr}.ws-list{max-height:220px}.ws-btn.danger{margin-left:0}}

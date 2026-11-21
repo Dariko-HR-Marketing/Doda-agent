@@ -12,3 +12,4 @@
 .send-button:disabled{opacity:.45;cursor:progress}
 @keyframes dodaPulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.chat-message.typing .chat-text::after{animation:none}}
+.chat-foot.mem{color:#7be8a0}

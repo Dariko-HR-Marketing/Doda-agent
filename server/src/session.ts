@@ -47,12 +47,12 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
   if (!token) return fail(c, 401, "unauthorized");
   const row = db
     .prepare(
-      `SELECT u.id, u.email, u.locale, u.email_verified_at
+      `SELECT u.id, u.email, u.locale, u.email_verified_at, u.memory_enabled
          FROM sessions s JOIN users u ON u.id = s.user_id
         WHERE s.id_hash = ? AND s.expires_at > ?`,
     )
     .get(sha256(token), now()) as
-    | { id: string; email: string; locale: "uz" | "ru"; email_verified_at: number | null }
+    | { id: string; email: string; locale: "uz" | "ru"; email_verified_at: number | null; memory_enabled: number }
     | undefined;
   if (!row) return fail(c, 401, "unauthorized");
   c.set("user", {
@@ -60,6 +60,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
     email: row.email,
     locale: row.locale,
     emailVerified: row.email_verified_at !== null,
+    memoryEnabled: row.memory_enabled === 1,
   });
   await next();
 };

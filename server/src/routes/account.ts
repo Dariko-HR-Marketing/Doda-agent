@@ -27,6 +27,17 @@ accountRoutes.post("/consents", async (c) => {
   return c.json({ consents: currentConsents(db, user.id) });
 });
 
+/** Xotira (DODA suhbatlardan eslab qolishi va saqlangan ma'lumotdan foydalanishi) */
+accountRoutes.post("/memory", async (c) => {
+  const { db, now } = c.get("deps");
+  const body = z.object({ enabled: z.boolean() }).safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return fail(c, 400, "invalid_input");
+  const user = c.get("user")!;
+  db.prepare("UPDATE users SET memory_enabled = ? WHERE id = ?").run(body.data.enabled ? 1 : 0, user.id);
+  db.prepare("INSERT INTO audit_log (user_ref, action, created_at) VALUES (?,?,?)").run(userRef(user.id), body.data.enabled ? "memory_on" : "memory_off", now());
+  return c.json({ memoryEnabled: body.data.enabled });
+});
+
 /** Akkaunt va unga bog'liq barcha ma'lumotni o'chirish (rozilikni qaytarib olish huquqi) */
 accountRoutes.delete("/", async (c) => {
   const { db, now } = c.get("deps");

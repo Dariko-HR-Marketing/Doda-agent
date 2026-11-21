@@ -6,6 +6,8 @@ import { fail, type Env } from "../http.js";
 import { t } from "../i18n.js";
 import { costUsd } from "../llm/pricing.js";
 import { systemPrompt } from "../llm/prompt.js";
+import { extractAndStore, loadMemoryContext, maybeMemorable } from "../memory.js";
+import { ensureDefaults } from "../workspace.js";
 import { pickTier } from "../llm/router.js";
 import { LlmHttpError, type LlmMessage } from "../llm/types.js";
 import { requireAuth } from "../session.js";
@@ -83,6 +85,8 @@ chatRoutes.post("/chat", async (c) => {
   const tier = pickTier(message, rows.length);
   const model = tier === "light" ? config.GEMINI_MODEL_LIGHT : config.GEMINI_MODEL_MAIN;
   const locale = user.locale;
+  if (user.memoryEnabled) ensureDefaults(db, user.id, now());
+  const system = systemPrompt(locale) + (user.memoryEnabled ? loadMemoryContext(db, user.id) : "");
 
   return streamSSE(c, async (stream) => {
     const controller = new AbortController();
@@ -95,7 +99,7 @@ chatRoutes.post("/chat", async (c) => {
 
     await stream.writeSSE({ event: "meta", data: JSON.stringify({ conversationId, model, tier }) });
     try {
-      for await (const ev of llm.stream({ model, system: systemPrompt(locale), messages: history, signal: controller.signal })) {
+      for await (const ev of llm.stream({ model, system, messages: history, signal: controller.signal })) {
         if (ev.type === "delta") {
           text += ev.text;
           await stream.writeSSE({ event: "delta", data: JSON.stringify({ text: ev.text }) });
@@ -141,6 +145,21 @@ chatRoutes.post("/chat", async (c) => {
           event: "done",
           data: JSON.stringify({ tokensIn, tokensOut, costUsd: cost, monthUsd: after.usd, budgetUsd: config.MONTHLY_BUDGET_USD }),
         });
+
+        // Xotira: faqat shaxsiy/doimiy ma'lumotga o'xshash xabarlar uchun, arzon modelda, javobdan KEYIN
+        if (user.memoryEnabled && maybeMemorable(message) && !controller.signal.aborted) {
+          try {
+            const mem = await extractAndStore(db, llm, config.GEMINI_MODEL_LIGHT, user.id, message, now(), controller.signal);
+            if (mem.tokensIn + mem.tokensOut > 0) {
+              db.prepare("INSERT INTO usage (user_id, conversation_id, model, tokens_in, tokens_out, cost_usd, created_at) VALUES (?,?,?,?,?,?,?)").run(
+                user.id, conversationId, config.GEMINI_MODEL_LIGHT, mem.tokensIn, mem.tokensOut, costUsd(config.GEMINI_MODEL_LIGHT, mem.tokensIn, mem.tokensOut, now()), now(),
+              );
+            }
+            if (mem.added.length) await stream.writeSSE({ event: "memory", data: JSON.stringify({ facts: mem.added }) });
+          } catch (e) {
+            console.error("[memory] xato:", e instanceof Error ? e.message.slice(0, 120) : "noma'lum");
+          }
+        }
       }
     }
   });
