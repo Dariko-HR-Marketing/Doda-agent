@@ -35,7 +35,12 @@ export function createApp(input: Deps): Hono<Env> {
   // So'rov hajmi: odatda 16 KB; ishchi maydon fayllari uchun kattaroq (fayl ko'pi bilan 64 KB + JSON/Unicode qoldig'i)
   const small = bodyLimit({ maxSize: 16 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") });
   const large = bodyLimit({ maxSize: 300 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") });
-  app.use("/api/*", (c, next) => (c.req.path.startsWith("/api/workspace/") ? large : small)(c, next));
+  // /api/chat: xabar 20 000 belgigacha (kirill UTF-8 da 2 baytdan) + biriktirilgan matnli fayllar
+  const chatLimit = bodyLimit({ maxSize: 100 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") });
+  app.use("/api/*", (c, next) => {
+    const path = c.req.path;
+    return (path.startsWith("/api/workspace/") ? large : path === "/api/chat" ? chatLimit : small)(c, next);
+  });
 
   // CORS: faqat bizning frontend manzilimiz
   app.use("/api/*", async (c, next) => {
@@ -49,7 +54,7 @@ export function createApp(input: Deps): Hono<Env> {
       c.header("Vary", "Origin");
     }
     if (c.req.method === "OPTIONS") {
-      c.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+      c.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
       c.header("Access-Control-Allow-Headers", "Content-Type,Accept-Language");
       c.header("Access-Control-Max-Age", "600");
       return c.body(null, 204);

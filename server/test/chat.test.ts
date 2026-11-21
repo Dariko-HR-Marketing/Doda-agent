@@ -157,8 +157,44 @@ describe("suhbat", () => {
   it("noto'g'ri kirishlar rad etiladi", async () => {
     const cookie = await signup("a@example.com");
     expect((await json("/api/chat", { message: "" }, { cookie })).status).toBe(400);
-    expect((await json("/api/chat", { message: "x".repeat(4001) }, { cookie })).status).toBe(400);
+    expect((await json("/api/chat", { message: "x".repeat(20_001) }, { cookie })).status).toBe(400);
     expect((await json("/api/chat", { message: "x", conversationId: "nope" }, { cookie })).status).toBe(400);
+  });
+});
+
+describe("model tanlash, qayta nomlash, uzun xabar", () => {
+  it("foydalanuvchi modelni majburan tanlay oladi (tez / aqlli), 'auto' yo'naltirgichga qoldiradi", async () => {
+    const cookie = await signup("a@example.com");
+    const send = async (message: string, tier: string) => (await json("/api/chat", { message, tier }, { cookie })).text();
+    await send("Salom", "main");
+    await send("Menga marketing strategiya tuzib ber", "light");
+    await send("Salom", "auto");
+    expect(calls.map((c) => c.model)).toEqual(["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash-lite"]);
+    expect((await json("/api/chat", { message: "x", tier: "ulkan" }, { cookie })).status).toBe(400);
+  });
+
+  it("suhbat nomini o'zgartirish faqat egasiga ruxsat etiladi", async () => {
+    const a = await signup("a@example.com");
+    const b = await signup("b@example.com");
+    const conv = (await chat(a, "salom")).events[0]!.data.conversationId;
+    expect((await json(`/api/conversations/${conv}`, { title: "  Mening   rejam " }, { cookie: a }, "PATCH")).status).toBe(200);
+    expect((await (await app.request("/api/conversations", { headers: { cookie: a } })).json()).conversations[0].title).toBe("Mening rejam");
+    expect((await json(`/api/conversations/${conv}`, { title: "o'g'irlangan" }, { cookie: b }, "PATCH")).status).toBe(404);
+    expect((await json(`/api/conversations/${conv}`, { title: "" }, { cookie: a }, "PATCH")).status).toBe(400);
+    expect((await json(`/api/conversations/${conv}`, { title: "x".repeat(81) }, { cookie: a }, "PATCH")).status).toBe(400);
+  });
+
+  it("uzun xabar (biriktirilgan matn bilan) qabul qilinadi, sarlavha faqat yozilgan qismdan olinadi", async () => {
+    const cookie = await signup("a@example.com");
+    const msg = "Shu hujjatni tekshir" + "\n\n---\n[Biriktirilgan fayl: hujjat.md]\n" + "Ўзбек матни. ".repeat(1200);
+    expect(msg.length).toBeGreaterThan(15000);
+    const r = await chat(cookie, msg);
+    expect(r.res.status).toBe(200);
+    const list = await (await app.request("/api/conversations", { headers: { cookie } })).json();
+    expect(list.conversations[0].title).toBe("Shu hujjatni tekshir");
+    expect(calls[0]!.messages.at(-1)!.content.length).toBe(msg.trim().length);
+    expect(calls[0]!.model).toBe("gemini-3.8-flash"); // uzun xabar avtomat asosiy modelga
+    expect((await json("/api/chat", { message: "x".repeat(20_001) }, { cookie })).status).toBe(400);
   });
 });
 

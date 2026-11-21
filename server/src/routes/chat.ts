@@ -18,9 +18,14 @@ chatRoutes.use("*", requireAuth);
 const MAX_CONTEXT_CHARS = 24_000;
 const MIN = 60 * 1000;
 
+/** Biriktirilgan matnli fayllar xabar ichida shu belgidan keyin keladi (sarlavha va ko'rinish uchun ajratiladi) */
+export const ATTACH_MARK = "\n\n---\n[Biriktirilgan fayl:";
+
 const chatSchema = z.object({
   conversationId: z.uuid().optional(),
-  message: z.string().trim().min(1).max(4000),
+  message: z.string().trim().min(1).max(20_000),
+  /** auto = DODA o'zi tanlaydi (tejamkor); light = tez/arzon; main = aqlli */
+  tier: z.enum(["auto", "light", "main"]).default("auto"),
 });
 
 /** Ketma-ket bir xil rolli xabarlarni birlashtiradi va suhbat 'user' bilan boshlanishini ta'minlaydi (model talabi) */
@@ -70,7 +75,8 @@ chatRoutes.post("/chat", async (c) => {
     if (!own) return fail(c, 404, "not_found");
   } else {
     convId = randomUUID();
-    const title = message.replace(/\s+/g, " ").slice(0, 60);
+    const typed = message.split(ATTACH_MARK)[0]!.trim() || message;
+    const title = typed.replace(/\s+/g, " ").slice(0, 60);
     db.prepare("INSERT INTO conversations (id, user_id, title, created_at, updated_at) VALUES (?,?,?,?,?)").run(convId, user.id, title, now(), now());
   }
   const conversationId = convId;
@@ -82,7 +88,7 @@ chatRoutes.post("/chat", async (c) => {
     .all(conversationId, config.HISTORY_MESSAGES) as LlmMessage[];
   const history = normalizeHistory(rows.reverse());
 
-  const tier = pickTier(message, rows.length);
+  const tier = body.data.tier === "auto" ? pickTier(message, rows.length) : body.data.tier;
   const model = tier === "light" ? config.GEMINI_MODEL_LIGHT : config.GEMINI_MODEL_MAIN;
   const locale = user.locale;
   if (user.memoryEnabled) ensureDefaults(db, user.id, now());
@@ -182,6 +188,16 @@ chatRoutes.get("/conversations/:id", (c) => {
     .prepare("SELECT role, content, model, created_at FROM messages WHERE conversation_id = ? ORDER BY id")
     .all(id) as Array<{ role: string; content: string; model: string | null; created_at: number }>;
   return c.json({ id: own.id, title: own.title, messages: msgs.map((m) => ({ role: m.role, content: m.content, model: m.model, createdAt: m.created_at })) });
+});
+
+chatRoutes.patch("/conversations/:id", async (c) => {
+  const { db, now } = c.get("deps");
+  const body = z.object({ title: z.string().trim().min(1).max(80) }).safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return fail(c, 400, "invalid_input");
+  const r = db.prepare("UPDATE conversations SET title = ?, updated_at = updated_at WHERE id = ? AND user_id = ?").run(body.data.title.replace(/\s+/g, " "), c.req.param("id"), c.get("user")!.id);
+  void now;
+  if (r.changes === 0) return fail(c, 404, "not_found");
+  return c.json({ status: "renamed", title: body.data.title });
 });
 
 chatRoutes.delete("/conversations/:id", (c) => {

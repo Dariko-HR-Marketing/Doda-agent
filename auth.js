@@ -127,7 +127,7 @@
   let notice = null; // {kind:'error'|'ok', text}
   let busy = false;
   let user = null;
-  window.DODA = { API, getUser: () => user, getLang: () => lang, setLang: (l) => setLang(l), openAccount: () => openAccount() };
+  window.DODA = { API, getUser: () => user, getLang: () => lang, setLang: (l) => setLang(l), openAccount: () => openAccount(), logout: () => doLogout() };
   function setUser(u) {
     user = u;
     document.dispatchEvent(new CustomEvent(u ? 'doda:login' : 'doda:logout', { detail: u }));
@@ -460,6 +460,12 @@
     draft = { email: '' };
     hideAuth();
     applyUser();
+  }
+
+  async function doLogout() {
+    await api('/api/auth/logout', { method: 'POST', body: {} });
+    setUser(null);
+    showAuth('login', { notice: null });
   }
 
   async function openAccount() {
