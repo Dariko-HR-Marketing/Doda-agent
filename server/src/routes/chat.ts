@@ -7,7 +7,7 @@ import { t } from "../i18n.js";
 import { costUsd } from "../llm/pricing.js";
 import { systemPrompt } from "../llm/prompt.js";
 import { pickTier } from "../llm/router.js";
-import type { LlmMessage } from "../llm/types.js";
+import { LlmHttpError, type LlmMessage } from "../llm/types.js";
 import { requireAuth } from "../session.js";
 
 export const chatRoutes = new Hono<Env>();
@@ -109,8 +109,14 @@ chatRoutes.post("/chat", async (c) => {
       failed = true;
       if (!controller.signal.aborted) {
         console.error("[chat] model xatosi:", e instanceof Error ? e.message.slice(0, 200) : "noma'lum");
-        await stream.writeSSE({ event: "error", data: JSON.stringify({ code: "llm_unavailable", message: t("llm_unavailable", locale) }) });
+        const code = e instanceof LlmHttpError && e.status === 429 ? "llm_rate_limited" : "llm_unavailable";
+        await stream.writeSSE({ event: "error", data: JSON.stringify({ code, message: t(code, locale) }) });
       }
+    }
+
+    // Model hech narsa qaytarmadi (masalan xavfsizlik filtri): foydalanuvchi bilsin, sarf yozilmasin
+    if (!failed && text.length === 0 && !controller.signal.aborted) {
+      await stream.writeSSE({ event: "error", data: JSON.stringify({ code: "llm_empty", message: t("llm_empty", locale) }) });
     }
 
     // Matn bo'lsa (hatto uzilgan bo'lsa ham) saqlaymiz; token ma'lumoti kelmasa, taxminiy baho

@@ -1,4 +1,4 @@
-import type { LlmEvent, LlmMessage, LlmProvider } from "./types.js";
+import { LlmHttpError, type LlmEvent, type LlmMessage, type LlmProvider } from "./types.js";
 
 interface GeminiChunk {
   candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>;
@@ -27,7 +27,7 @@ export class GeminiProvider implements LlmProvider {
       }),
       signal: AbortSignal.any(signals),
     });
-    if (!res.ok || !res.body) throw new Error(`gemini http ${res.status}`);
+    if (!res.ok || !res.body) throw new LlmHttpError(res.status);
 
     let tokensIn = 0;
     let tokensOut = 0;

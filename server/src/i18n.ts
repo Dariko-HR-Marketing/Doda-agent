@@ -37,6 +37,14 @@ const messages = {
     uz: "Suhbat xizmati hozir mavjud emas. Birozdan keyin qayta urinib ko‘ring.",
     ru: "Сервис диалога сейчас недоступен. Повторите попытку позже.",
   },
+  llm_rate_limited: {
+    uz: "Google so‘rovlar chegarasiga yetildi (bepul rejim). Bir daqiqadan keyin qayta urinib ko‘ring.",
+    ru: "Достигнут лимит запросов Google (бесплатный режим). Повторите через минуту.",
+  },
+  llm_empty: {
+    uz: "Model bu so‘rovga javob qaytarmadi. Savolni boshqacha ifodalab ko‘ring.",
+    ru: "Модель не вернула ответ на этот запрос. Попробуйте переформулировать вопрос.",
+  },
   not_found: { uz: "Topilmadi.", ru: "Не найдено." },
   server_error: { uz: "Ichki xatolik.", ru: "Внутренняя ошибка." },
 } as const;

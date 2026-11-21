@@ -5,7 +5,7 @@ import { openDb, type Db } from "../src/db.js";
 import { GeminiProvider } from "../src/llm/gemini.js";
 import { costUsd } from "../src/llm/pricing.js";
 import { pickTier } from "../src/llm/router.js";
-import type { LlmEvent, LlmMessage, LlmProvider } from "../src/llm/types.js";
+import { LlmHttpError, type LlmEvent, type LlmMessage, type LlmProvider } from "../src/llm/types.js";
 import { MemoryMailer } from "../src/mailer.js";
 import { RateLimiter } from "../src/rateLimit.js";
 import { normalizeHistory } from "../src/routes/chat.js";
@@ -245,6 +245,29 @@ describe("xatolar", () => {
     const { events } = await chat(cookie, "salom");
     expect(events.map((e) => e.event)).toEqual(["meta", "delta", "error"]);
     expect(db.prepare("SELECT content FROM messages WHERE role='assistant'").get()).toEqual({ content: "Yarim" });
+  });
+
+  it("Google 429 (bepul chegara) tushunarli xabar bilan: 'llm_rate_limited'", async () => {
+    behavior = async function* () {
+      throw new LlmHttpError(429);
+    };
+    const cookie = await signup("a@example.com");
+    const { events } = await chat(cookie, "salom");
+    expect(events.map((e) => e.event)).toEqual(["meta", "error"]);
+    expect(events[1]!.data.code).toBe("llm_rate_limited");
+    expect(events[1]!.data.message).toContain("chegara");
+    expect(db.prepare("SELECT COUNT(*) c FROM usage").get()).toEqual({ c: 0 });
+  });
+
+  it("bo'sh javob: 'llm_empty' xatosi, sarf yozilmaydi", async () => {
+    behavior = async function* () {
+      yield { type: "usage", tokensIn: 10, tokensOut: 0 };
+    };
+    const cookie = await signup("a@example.com");
+    const { events } = await chat(cookie, "salom");
+    expect(events.map((e) => e.event)).toEqual(["meta", "error"]);
+    expect(events[1]!.data.code).toBe("llm_empty");
+    expect(db.prepare("SELECT COUNT(*) c FROM usage").get()).toEqual({ c: 0 });
   });
 
   it("usage kelmasa, taxminiy baho yoziladi", async () => {
