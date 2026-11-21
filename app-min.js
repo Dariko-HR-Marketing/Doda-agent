@@ -9,7 +9,7 @@
   const T = {
     uz: {
       placeholder: 'DODAga yozing yoki gapiring…', send: 'Yuborish', stop: 'To‘xtatish', mic: 'Ovozli kiritish', micStop: 'Tinglashni to‘xtatish',
-      tasksT: 'Vazifalar', agentsT: 'Agentlar', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
+      tasksT: 'Vazifalar', agentsT: 'Agentlar', keysT: 'AI kalitlari', keyBannerT: 'Boshlash uchun o‘z AI kalitingizni ulang', keyBannerP: 'DODA sizning shaxsiy Anthropic (Claude), Google Gemini yoki OpenAI hisobingiz bilan ishlaydi: xarajat to‘g‘ridan-to‘g‘ri sizning hisobingizdan yechiladi.', keyBannerB: 'Kalit ulash', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
       today: 'Bugun', yesterday: 'Kecha', week: 'Oxirgi 7 kun', older: 'Oldinroq', rename: 'Nomini o‘zgartirish', del: 'O‘chirish', delSure: 'Aniq o‘chiraman', more: 'Amallar',
       account: 'Akkaunt', language: 'Til', logout: 'Chiqish', sbOpen: 'Panelni ochish', sbClose: 'Panelni yopish',
       morning: 'Xayrli tong', day: 'Xayrli kun', evening: 'Xayrli kech', night: 'Xayrli tun', ask: 'Nima haqida gaplashamiz?',
@@ -28,7 +28,7 @@
     },
     ru: {
       placeholder: 'Напишите DODA или скажите…', send: 'Отправить', stop: 'Остановить', mic: 'Голосовой ввод', micStop: 'Остановить запись',
-      tasksT: 'Задачи', agentsT: 'Агенты', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
+      tasksT: 'Задачи', agentsT: 'Агенты', keysT: 'Ключи ИИ', keyBannerT: 'Чтобы начать, подключите свой ключ ИИ', keyBannerP: 'DODA работает с вашим личным аккаунтом Anthropic (Claude), Google Gemini или OpenAI: расходы списываются напрямую с вашего счёта.', keyBannerB: 'Подключить ключ', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
       today: 'Сегодня', yesterday: 'Вчера', week: 'Последние 7 дней', older: 'Ранее', rename: 'Переименовать', del: 'Удалить', delSure: 'Точно удалить', more: 'Действия',
       account: 'Аккаунт', language: 'Язык', logout: 'Выйти', sbOpen: 'Открыть панель', sbClose: 'Закрыть панель',
       morning: 'Доброе утро', day: 'Добрый день', evening: 'Добрый вечер', night: 'Доброй ночи', ask: 'О чём поговорим?',
@@ -81,6 +81,7 @@
     folder: ['M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'],
     x: ['M6 6l12 12', 'M18 6L6 18'],
     agents: ['M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M5 22v-3a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v3', 'M9 11h.01', 'M15 11h.01'],
+    key: ['M15.5 8.5a4 4 0 1 1-5.2 3.8L4 18.6V21h3v-2h2v-2h2l1.1-1.2', 'M16.5 7.5h.01'],
     tasks: ['M4 6l2 2 3-3', 'M12 7h8', 'M4 14l2 2 3-3', 'M12 15h8'],
     copy: ['M9 9h10v10H9z', 'M5 15V5h10'],
     check: ['M5 12l5 5 9-10'],
@@ -145,6 +146,7 @@
   let stick = true;
   let voiceAllowed = null;
   let serverStt = null;
+  let hasKeys = null;
   let rec = null;
   let listening = false;
   let autoTimer = null;
@@ -216,6 +218,7 @@
     ui.fileInput = h('input', { type: 'file', hidden: true, multiple: true, accept: '.txt,.md,.csv,.json,.log,.tsv,text/*', onchange: (e) => { addFiles([...e.target.files]); e.target.value = ''; } });
     ui.atts = h('div', { class: 'cmp-atts' });
     ui.consent = h('div', { class: 'min-consent', hidden: true });
+    ui.keyBanner = h('div', { class: 'min-consent key-banner', hidden: true });
     ui.live = h('div', { class: 'min-live', role: 'status', 'aria-live': 'polite' });
     ui.recCancel = h('button', { type: 'button', class: 'min-circle', onclick: () => finishRec('cancel') }, svg(IC.x));
     ui.recCanvas = h('canvas', { class: 'rec-wave', 'aria-hidden': 'true' });
@@ -224,7 +227,7 @@
     ui.recStop = h('button', { type: 'button', class: 'min-circle rec-stop', onclick: () => finishRec('stop') }, svg(IC.stop, 18));
     ui.recSend = h('button', { type: 'button', class: 'min-circle rec-send', onclick: () => finishRec('send') }, svg(IC.up));
     ui.recBar = h('div', { class: 'rec-bar', hidden: true }, ui.recCancel, h('div', { class: 'rec-mid' }, ui.recCanvas, ui.recText), ui.recTime, ui.recStop, ui.recSend);
-    ui.form = h('form', { class: 'cmp', onsubmit: onSubmit }, ui.consent, ui.atts, ui.input,
+    ui.form = h('form', { class: 'cmp', onsubmit: onSubmit }, ui.keyBanner, ui.consent, ui.atts, ui.input,
       h('div', { class: 'cmp-row' }, ui.plusBtn, h('span', { class: 'cmp-gap' }), ui.tierBtn, ui.micBtn, ui.sendBtn), ui.recBar, ui.fileInput);
     ui.note = h('p', { class: 'min-note' });
 
@@ -250,6 +253,7 @@
     showEmpty();
     loadList();
     loadHistory();
+    refreshKeys();
     api('/api/voice/status').then((r) => { if (r.status === 200) serverStt = !!r.data.server; if (root && ui.micBtn && !speechCtor() && !canRecord()) ui.micBtn.hidden = true; });
     api('/api/auth/me').then((r) => { voiceAllowed = !!(r.data.consents && r.data.consents.voice && r.data.consents.voice.accepted); });
     ui.input.focus({ preventScroll: true });
@@ -295,6 +299,7 @@
     ui.rowSearch.lastChild.textContent = tr('search');
     ui.recCancel.setAttribute('aria-label', tr('recDiscard')); ui.recStop.setAttribute('aria-label', tr('recStop')); ui.recSend.setAttribute('aria-label', tr('recSend'));
     ui.recStop.title = tr('recStop'); ui.recSend.title = tr('recSend'); ui.recCancel.title = tr('recDiscard');
+    renderKeyBanner();
     ui.rowTasks.lastChild.textContent = tr('tasksT');
     ui.rowAgents.lastChild.textContent = tr('agentsT');
     ui.rowFiles.lastChild.textContent = tr('files');
@@ -425,6 +430,7 @@
   function openUserMenu() {
     const seg = (code) => h('button', { type: 'button', class: 'seg' + (lang() === code ? ' on' : ''), 'aria-pressed': String(lang() === code), onclick: () => { if (D().setLang) D().setLang(code); closePop(); } }, code.toUpperCase());
     openPop(ui.userBtn, h('div', {},
+      popRow(IC.key, tr('keysT'), () => { closePop(); openOverlay('keys'); }),
       popRow(IC.user, tr('account'), () => { closePop(); if (D().openAccount) D().openAccount(); }),
       h('div', { class: 'pop-lang' }, h('span', {}, tr('language')), h('div', { class: 'segs' }, seg('uz'), seg('ru'))),
       popRow(IC.out, tr('logout'), () => { closePop(); if (D().logout) D().logout(); })), { align: 'left' });
@@ -600,6 +606,10 @@
         const j = await res.json().catch(() => ({}));
         reply.el.classList.remove('typing'); reply.el.classList.add('error');
         reply.body.textContent = (j && j.error && j.error.message) || tr('netErr');
+        if (j && j.error && j.error.code === 'api_key_required') {
+          hasKeys = false; renderKeyBanner();
+          reply.body.append(h('div', { class: 'min-consent-actions', style: 'margin-top:10px' }, h('button', { type: 'button', class: 'min-btn primary', onclick: () => openOverlay('keys') }, tr('keyBannerB'))));
+        }
       } else {
         await readSse(res, (event, data) => {
           if (event === 'meta') { convId = data.conversationId; model = data.model; saveConv(); }
@@ -835,26 +845,48 @@
   }
 
   /* ---------- fayllar (ishchi maydon) ---------- */
-  const OVERLAYS = { files: () => window.DODA_WS, tasks: () => window.DODA_TASKS, agents: () => window.DODA_AGENTS };
-  function openOverlay(kind) {
+  /* ---------- foydalanuvchining shaxsiy AI kalitlari (BYOK) ---------- */
+  async function refreshKeys() {
+    const r = await api('/api/keys');
+    if (!root || r.status !== 200) return;
+    hasKeys = r.data.sharedAvailable || r.data.providers.some((p) => p.connected && p.status === 'active');
+    renderKeyBanner();
+  }
+  function renderKeyBanner() {
+    if (!ui.keyBanner) return;
+    ui.keyBanner.hidden = hasKeys !== false;
+    if (hasKeys !== false) return;
+    ui.keyBanner.replaceChildren(
+      h('b', {}, tr('keyBannerT')), h('p', {}, tr('keyBannerP')),
+      h('div', { class: 'min-consent-actions' }, h('button', { type: 'button', class: 'min-btn primary', onclick: () => openOverlay('keys') }, tr('keyBannerB'))));
+  }
+  document.addEventListener('doda:keys', () => { refreshKeys(); serverSttRefresh(); });
+  function serverSttRefresh() {
+    api('/api/voice/status').then((r) => { if (r.status === 200) serverStt = !!r.data.server; if (root && ui.micBtn) ui.micBtn.hidden = !speechCtor() && !canRecord(); });
+  }
+
+  const OVERLAYS = { files: () => window.DODA_WS, tasks: () => window.DODA_TASKS, agents: () => window.DODA_AGENTS, keys: () => window.DODA_KEYS };
+  function openOverlay(kind, opts) {
     const mod = OVERLAYS[kind] && OVERLAYS[kind]();
     if (files || !mod) return;
-    const title = kind === 'tasks' ? tr('tasksT') : kind === 'agents' ? tr('agentsT') : tr('files');
+    const title = kind === 'tasks' ? tr('tasksT') : kind === 'agents' ? tr('agentsT') : kind === 'keys' ? tr('keysT') : tr('files');
     const body = h('div', { class: 'min-files-body' });
     files = h('div', { class: 'min-files', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'min-files-head' }, h('b', {}, title), h('button', { type: 'button', class: 'min-icon', 'aria-label': 'Yopish', onclick: () => closeFiles() }, svg(IC.x))), body);
     files.dataset.kind = kind;
     document.body.append(files);
-    mod.mount(body);
+    mod.mount(body, opts);
   }
   function closeFiles(force) {
     if (!files) return;
-    const mod = OVERLAYS[files.dataset.kind] && OVERLAYS[files.dataset.kind]();
+    const kind0 = files.dataset.kind;
+    const mod = OVERLAYS[kind0] && OVERLAYS[kind0]();
     if (mod) {
       if (!force && mod.isDirty && mod.isDirty() && !window.confirm(lang() === 'ru' ? 'Несохранённые изменения будут потеряны. Закрыть?' : 'Saqlanmagan o‘zgarishlar yo‘qoladi. Yopilsinmi?')) return;
       mod.unmount();
     }
     files.remove(); files = null;
+    if (kind0 === 'keys') refreshKeys();
   }
 
   document.addEventListener('keydown', (e) => {

@@ -58,3 +58,23 @@
 .ag-badge.ok{background:#12452f;color:#7be8a0}.ag-badge.needs_work{background:#4a3a12;color:#ffd878}
 .tk-btn.small{min-height:34px;padding:0 12px;font-size:13px}
 .tk select.ag-in{min-width:0;flex:1 1 180px}
+
+/* AI kalitlari */
+.ky-secure{margin:0;padding:10px 14px;border-radius:12px;background:#0d2b2a;border:1px solid #1f5a4a;color:#bfe8d6;font-size:13.5px;line-height:1.5}
+.ky-flash{padding:10px 14px;border-radius:12px;background:#12452f;color:#9ff0bd;font-size:14px;font-weight:600}
+.ky-cards{display:grid;gap:12px}
+.ky-card{padding:14px;background:#0b2233;border:1px solid #1f4252;border-radius:16px;display:grid;gap:10px}
+.ky-card.on{border-color:#2c7a58}
+.ky-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.ky-name{font-weight:800;font-size:16px}
+.ky-badge{padding:4px 11px;border-radius:99px;font-size:12px;font-weight:800;white-space:nowrap}
+.ky-badge.on{background:#12452f;color:#7be8a0}.ky-badge.off{background:#16364a;color:#9dbbc4}.ky-badge.bad{background:#4a2330;color:#ffb3bd}
+.ky-row{display:flex;gap:10px;flex-wrap:wrap}
+.ky-in{box-sizing:border-box;flex:1 1 220px;min-width:0;min-height:42px;padding:0 12px;border:1px solid #28495b;border-radius:12px;background:#0a2231;color:#eefafc;font:inherit;font-size:14px}
+.ky-in:focus{outline:0;border-color:#4fdc7c}
+.ky-foot{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.ky-link{background:none;border:0;padding:4px 0;color:#7fe3a2;font:inherit;font-size:13.5px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.ky-msg{margin-top:0}
+.ky-usage{display:grid;gap:6px;padding:12px 14px;background:#0b2233;border:1px solid #1f4252;border-radius:14px}
+.ky-urow{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;font-size:14px}
+.ky-urow.total{border-top:1px solid #1f4252;padding-top:8px;margin-top:2px}

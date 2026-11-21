@@ -90,10 +90,12 @@ describe("suhbat", () => {
     expect((await json("/api/chat", { message: "salom" })).status).toBe(401);
   });
 
-  it("kalit sozlanmagan bo'lsa 503", async () => {
+  it("kalit sozlanmagan bo'lsa 403 (foydalanuvchi o'z kalitini ulashi kerak)", async () => {
     build({}, null);
     const cookie = await signup("a@example.com");
-    expect((await json("/api/chat", { message: "salom" }, { cookie })).status).toBe(503);
+    const res = await json("/api/chat", { message: "salom" }, { cookie });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error.code).toBe("api_key_required");
   });
 
   it("javob oqim bilan keladi, xabarlar va sarf saqlanadi", async () => {
@@ -361,7 +363,7 @@ describe("xatolar", () => {
     expect(db.prepare("SELECT COUNT(*) c FROM usage").get()).toEqual({ c: 0 });
   });
 
-  it("kalit/hudud xatosi (403): 'llm_auth', kalit yo'q bo'lsa 'llm_not_configured'", async () => {
+  it("kalit/hudud xatosi (403): 'llm_auth', kalit yo'q bo'lsa 'api_key_required'", async () => {
     behavior = async function* () {
       throw new LlmHttpError(403);
     };
@@ -371,8 +373,8 @@ describe("xatolar", () => {
     build({}, null);
     const c2 = await signup("b@example.com");
     const res = await json("/api/chat", { message: "salom" }, { cookie: c2 });
-    expect(res.status).toBe(503);
-    expect((await res.json()).error.code).toBe("llm_not_configured");
+    expect(res.status).toBe(403);
+    expect((await res.json()).error.code).toBe("api_key_required");
   });
 
   it("bo'sh javob: 'llm_empty' xatosi, sarf yozilmaydi", async () => {

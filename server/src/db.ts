@@ -172,6 +172,21 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX agent_runs_agent ON agent_runs(agent_id, created_at);
   `,
+  `
+  -- Foydalanuvchining shaxsiy AI kalitlari: faqat shifrlangan holda (AES-256-GCM). Ochiq matn hech qayerda saqlanmaydi.
+  CREATE TABLE user_api_keys (
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider   TEXT NOT NULL CHECK (provider IN ('anthropic','gemini','openai')),
+    enc        TEXT NOT NULL,
+    last4      TEXT NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','invalid')),
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, provider)
+  );
+  -- own=1: sarf foydalanuvchining o'z kaliti bilan (uning shaxsiy hisobidan); own=0: server kaliti
+  ALTER TABLE usage ADD COLUMN own INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 export function openDb(path: string): Db {

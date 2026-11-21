@@ -152,7 +152,7 @@
       if (r.status === 200) showList();
     });
 
-    box.replaceChildren(
+    box.replaceChildren(...[
       h('button', { type: 'button', class: 'tk-back', onclick: showList }, '← ' + tr('back')),
       title,
       t.goal ? h('p', { class: 'tk-goal-txt' }, h('b', {}, tr('goal') + ': '), t.goal) : null,
@@ -161,7 +161,8 @@
       h('div', { class: 'tk-row end' },
         h('button', { type: 'button', class: 'tk-btn', onclick: () => setStatus(t.status === 'done' ? 'active' : 'done') }, t.status === 'done' ? tr('reopen') : tr('done')),
         h('button', { type: 'button', class: 'tk-btn', onclick: () => setStatus('archived') }, tr('archive')),
-        delBtn));
+        delBtn),
+    ].filter(Boolean));
   }
 
   function mount(container) {

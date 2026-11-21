@@ -11,14 +11,27 @@ import { workspaceRoutes } from "./routes/workspace.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { agentRoutes } from "./routes/agents.js";
 import { voiceRoutes } from "./routes/voice.js";
+import { keyRoutes } from "./routes/keys.js";
+import { UserLlm, defaultFactory } from "./userkeys.js";
 
 export function createApp(input: Deps): Hono<Env> {
+  const now = input.now ?? Date.now;
+  const factory = input.providerFactory ?? defaultFactory(input.config);
+  const userLlm = new UserLlm(input.db, input.config, factory, now);
+  const shared = input.llm ?? null;
   const deps: ResolvedDeps = {
     ...input,
     limiter: input.limiter ?? new RateLimiter(input.now),
-    now: input.now ?? Date.now,
+    now,
     google: input.google ?? null,
-    llm: input.llm ?? null,
+    llm: shared,
+    userLlm,
+    factory,
+    llmFor(userId) {
+      const own = userLlm.get(userId);
+      if (own) return { llm: own, own: true };
+      return shared ? { llm: shared, own: false } : null;
+    },
   };
   const { config } = deps;
   const app = new Hono<Env>();
@@ -82,6 +95,7 @@ export function createApp(input: Deps): Hono<Env> {
   app.route("/api/tasks", taskRoutes);
   app.route("/api/agents", agentRoutes);
   app.route("/api/voice", voiceRoutes);
+  app.route("/api/keys", keyRoutes);
   app.route("/api", chatRoutes);
 
   app.notFound((c) => fail(c, 404, "not_found"));

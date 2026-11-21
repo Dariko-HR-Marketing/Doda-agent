@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Db } from "../db.js";
 import { fail, type Env } from "../http.js";
 import { ChainError, chainFor, legacyChain, runChain } from "../llm/multi.js";
-import { costUsd } from "../llm/pricing.js";
+import { recordUsage, sharedSpendUsd } from "../usage.js";
 import { requireAuth } from "../session.js";
 
 export const taskRoutes = new Hono<Env>();
@@ -113,16 +113,16 @@ const PLAN_SYSTEM = [
 ].join("\n");
 
 taskRoutes.post("/plan", async (c) => {
-  const { db, config, llm, limiter, now } = c.get("deps");
+  const { db, config, limiter, now, llmFor } = c.get("deps");
   const user = c.get("user")!;
-  if (!llm) return fail(c, 503, "llm_unavailable");
+  const resolved = llmFor(user.id);
+  if (!resolved) return fail(c, 403, "api_key_required");
+  const { llm, own } = resolved;
   if (!limiter.take(`plan:${user.id}`, 6, 10 * MIN)) return fail(c, 429, "too_many_requests");
   const body = planSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return fail(c, 400, "invalid_input");
   if (countTasks(db, user.id) >= MAX_TASKS) return fail(c, 400, "too_many_tasks");
-  const monthStart = (() => { const d = new Date(now()); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); })();
-  const spent = (db.prepare("SELECT COALESCE(SUM(cost_usd),0) usd FROM usage WHERE user_id = ? AND created_at >= ?").get(user.id, monthStart) as { usd: number }).usd;
-  if (spent >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
+  if (!own && sharedSpendUsd(db, user.id, now()) >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
 
   let r;
   let model = "";
@@ -133,9 +133,7 @@ taskRoutes.post("/plan", async (c) => {
   } catch (e) {
     return fail(c, e instanceof ChainError && e.code === "llm_rate_limited" ? 429 : e instanceof ChainError && e.code === "llm_auth" ? 503 : 503, e instanceof ChainError ? e.code : "llm_unavailable");
   }
-  db.prepare("INSERT INTO usage (user_id, conversation_id, model, tokens_in, tokens_out, cost_usd, created_at) VALUES (?,?,?,?,?,?,?)").run(
-    user.id, null, model, r.tokensIn, r.tokensOut, costUsd(model, r.tokensIn, r.tokensOut, now()), now(),
-  );
+  recordUsage(db, { userId: user.id, model, tokensIn: r.tokensIn, tokensOut: r.tokensOut, own, now: now() });
   const plan = parsePlan(r.text);
   if (!plan) return fail(c, 400, "plan_failed");
   const id = insertTask(db, user.id, plan.title || body.data.goal.slice(0, 80), body.data.goal, plan.stages, now());

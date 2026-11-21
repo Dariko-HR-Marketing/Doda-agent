@@ -28,6 +28,7 @@ export class LlmRouter implements LlmProvider {
   constructor(
     private slots: Slot[],
     private now: () => number = Date.now,
+    private onFail?: (name: ProviderName, status: number) => void,
   ) {}
 
   enabled(): string[] {
@@ -60,6 +61,7 @@ export class LlmRouter implements LlmProvider {
 
   private note(s: Slot, e: unknown): void {
     if (!(e instanceof LlmHttpError)) return;
+    this.onFail?.(s.name, e.status);
     if (AUTH.has(e.status)) this.downUntil.set(s.name, this.now() + 10 * 60_000);
     else if (e.status === 429) this.downUntil.set(s.name, this.now() + 60_000);
   }

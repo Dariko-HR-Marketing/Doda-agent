@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { fail, type Env } from "../http.js";
 import { t } from "../i18n.js";
-import { costUsd } from "../llm/pricing.js";
+import { recordUsage, sharedSpendUsd, usageReport } from "../usage.js";
 import { systemPrompt } from "../llm/prompt.js";
 import { extractAndStore, loadMemoryContext, maybeMemorable } from "../memory.js";
 import { ensureDefaults } from "../workspace.js";
@@ -44,30 +44,20 @@ export function normalizeHistory(msgs: LlmMessage[], maxChars = MAX_CONTEXT_CHAR
   return merged;
 }
 
-function monthStartUtc(now: number): number {
-  const d = new Date(now);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
-}
-
-function monthlySpend(db: import("../db.js").Db, userId: string, now: number): { usd: number; tokensIn: number; tokensOut: number } {
-  const r = db
-    .prepare("SELECT COALESCE(SUM(cost_usd),0) usd, COALESCE(SUM(tokens_in),0) tin, COALESCE(SUM(tokens_out),0) tout FROM usage WHERE user_id = ? AND created_at >= ?")
-    .get(userId, monthStartUtc(now)) as { usd: number; tin: number; tout: number };
-  return { usd: r.usd, tokensIn: r.tin, tokensOut: r.tout };
-}
-
 chatRoutes.post("/chat", async (c) => {
-  const { db, config, llm, limiter, now } = c.get("deps");
+  const { db, config, limiter, now, llmFor } = c.get("deps");
   const user = c.get("user")!;
-  if (!llm) return fail(c, 503, "llm_not_configured");
+  const resolved = llmFor(user.id);
+  if (!resolved) return fail(c, 403, "api_key_required");
+  const { llm, own } = resolved;
   if (!limiter.take(`chat:${user.id}`, 20, MIN)) return fail(c, 429, "too_many_requests");
 
   const body = chatSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return fail(c, 400, "invalid_input");
   const { message } = body.data;
 
-  const spent = monthlySpend(db, user.id, now());
-  if (spent.usd >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
+  // Byudjet faqat server kalitida cheklanadi; foydalanuvchining o'z kaliti o'z hisobidan ishlaydi
+  if (!own && sharedSpendUsd(db, user.id, now()) >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
 
   // Suhbat: mavjud (faqat egasiniki) yoki yangi
   let convId = body.data.conversationId;
@@ -151,21 +141,20 @@ chatRoutes.post("/chat", async (c) => {
         tokensIn = Math.ceil(history.reduce((n, m) => n + m.content.length, 0) / 3);
         tokensOut = Math.ceil(text.length / 3);
       }
-      const cost = costUsd(model, tokensIn, tokensOut, now());
+      let cost = 0;
       db.transaction(() => {
         db.prepare("INSERT INTO messages (conversation_id, role, content, model, tokens_in, tokens_out, created_at) VALUES (?,?,?,?,?,?,?)").run(
           conversationId, "assistant", text, model, tokensIn, tokensOut, now(),
         );
-        db.prepare("INSERT INTO usage (user_id, conversation_id, model, tokens_in, tokens_out, cost_usd, created_at) VALUES (?,?,?,?,?,?,?)").run(
-          user.id, conversationId, model, tokensIn, tokensOut, cost, now(),
-        );
+        cost = recordUsage(db, { userId: user.id, conversationId, model, tokensIn, tokensOut, own, now: now() });
         db.prepare("UPDATE conversations SET updated_at = ? WHERE id = ?").run(now(), conversationId);
       })();
       if (!failed) {
-        const after = monthlySpend(db, user.id, now());
+        const after = usageReport(db, user.id, now());
         await stream.writeSSE({
           event: "done",
-          data: JSON.stringify({ tokensIn, tokensOut, costUsd: cost, monthUsd: after.usd, budgetUsd: config.MONTHLY_BUDGET_USD }),
+          // own: sarf foydalanuvchining shaxsiy hisobidan; byudjet chegarasi faqat server kalitida bor
+          data: JSON.stringify({ tokensIn, tokensOut, costUsd: cost, monthUsd: after.monthUsd, budgetUsd: own ? null : config.MONTHLY_BUDGET_USD, own }),
         });
 
         // Xotira: faqat shaxsiy/doimiy ma'lumotga o'xshash xabarlar uchun, arzon modelda, javobdan KEYIN
@@ -175,9 +164,7 @@ chatRoutes.post("/chat", async (c) => {
             let memModel = lightChain[0]!;
             const { result: mem } = await runChain(lightChain, (m) => { memModel = m; return extractAndStore(db, llm, m, user.id, message, now(), controller.signal); }, controller.signal);
             if (mem.tokensIn + mem.tokensOut > 0) {
-              db.prepare("INSERT INTO usage (user_id, conversation_id, model, tokens_in, tokens_out, cost_usd, created_at) VALUES (?,?,?,?,?,?,?)").run(
-                user.id, conversationId, memModel, mem.tokensIn, mem.tokensOut, costUsd(memModel, mem.tokensIn, mem.tokensOut, now()), now(),
-              );
+              recordUsage(db, { userId: user.id, conversationId, model: memModel, tokensIn: mem.tokensIn, tokensOut: mem.tokensOut, own, now: now() });
             }
             if (mem.added.length) await stream.writeSSE({ event: "memory", data: JSON.stringify({ facts: mem.added }) });
           } catch (e) {
@@ -226,7 +213,8 @@ chatRoutes.delete("/conversations/:id", (c) => {
 });
 
 chatRoutes.get("/usage", (c) => {
-  const { db, config, now } = c.get("deps");
-  const s = monthlySpend(db, c.get("user")!.id, now());
-  return c.json({ monthUsd: s.usd, budgetUsd: config.MONTHLY_BUDGET_USD, tokensIn: s.tokensIn, tokensOut: s.tokensOut });
+  const { db, config, now, llm } = c.get("deps");
+  const r = usageReport(db, c.get("user")!.id, now());
+  // budgetUsd: faqat server kaliti ishlatilganda mavjud chegara (null = chegara yo'q, hisob foydalanuvchining o'zida)
+  return c.json({ ...r, budgetUsd: llm ? config.MONTHLY_BUDGET_USD : null });
 });

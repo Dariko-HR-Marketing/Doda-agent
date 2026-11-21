@@ -7,6 +7,7 @@ import type { Mailer } from "./mailer.js";
 import type { GoogleClient } from "./google.js";
 import type { LlmProvider } from "./llm/types.js";
 import type { RateLimiter } from "./rateLimit.js";
+import type { ProviderFactory, UserLlm } from "./userkeys.js";
 
 export interface Deps {
   config: Config;
@@ -15,10 +16,26 @@ export interface Deps {
   limiter?: RateLimiter;
   now?: () => number;
   google?: GoogleClient | null;
+  /** Server kaliti bilan ishlaydigan umumiy provayder (faqat ALLOW_SERVER_KEYS=true bo'lsa beriladi) */
   llm?: LlmProvider | null;
+  /** Sinov uchun: foydalanuvchi kalitidan provayder yasash */
+  providerFactory?: ProviderFactory;
 }
 
-export type ResolvedDeps = Required<Omit<Deps, "google" | "llm">> & { google: GoogleClient | null; llm: LlmProvider | null };
+export interface ResolvedLlm {
+  llm: LlmProvider;
+  /** true: foydalanuvchining o'z kaliti (sarf uning shaxsiy hisobidan); false: server kaliti */
+  own: boolean;
+}
+
+export type ResolvedDeps = Required<Omit<Deps, "google" | "llm" | "providerFactory">> & {
+  google: GoogleClient | null;
+  llm: LlmProvider | null;
+  userLlm: UserLlm;
+  factory: ProviderFactory;
+  /** Foydalanuvchi uchun AI: avval uning o'z kaliti, bo'lmasa (ruxsat berilgan bo'lsa) server kaliti, aks holda null */
+  llmFor(userId: string): ResolvedLlm | null;
+};
 
 export interface AuthedUser {
   id: string;

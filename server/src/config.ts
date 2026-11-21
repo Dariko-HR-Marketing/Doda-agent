@@ -29,7 +29,11 @@ const schema = z.object({
   GEMINI_MODEL_LIGHT: z.string().default("gemini-3.5-flash-lite"),
   /** Murakkab ishlar uchun asosiy model */
   GEMINI_MODEL_MAIN: z.string().default("gemini-3.8-flash"),
-  /** Claude (Anthropic). Kalit bo'lsa yoqiladi */
+  /** Foydalanuvchi kalitlarini shifrlash uchun asosiy sir (kamida 32 belgi). Yo'qolsa, saqlangan kalitlar o'qilmaydi: .env zaxirasini saqlang */
+  KEYS_SECRET: z.string().min(32).optional(),
+  /** "true" bo'lsa, foydalanuvchi o'z kaliti bo'lmaganda server kalitlari (quyida) ishlatiladi. Standart: "false" (har kim o'z hisobidan) */
+  ALLOW_SERVER_KEYS: z.enum(["true", "false"]).default("false"),
+  /** Claude (Anthropic). Faqat ALLOW_SERVER_KEYS=true bo'lganda server kaliti sifatida ishlatiladi */
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL_LIGHT: z.string().default("claude-haiku-5-5"),
   ANTHROPIC_MODEL_MAIN: z.string().default("claude-sonnet-5-5"),
@@ -49,9 +53,9 @@ const schema = z.object({
   HISTORY_MESSAGES: z.coerce.number().int().min(2).max(60).default(20),
 });
 
-export type Config = z.infer<typeof schema> & { isProd: boolean; trustProxy: boolean };
+export type Config = z.infer<typeof schema> & { isProd: boolean; trustProxy: boolean; allowServerKeys: boolean };
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   const parsed = schema.parse(env);
-  return { ...parsed, isProd: parsed.NODE_ENV === "production", trustProxy: parsed.TRUST_PROXY === "true" };
+  return { ...parsed, isProd: parsed.NODE_ENV === "production", trustProxy: parsed.TRUST_PROXY === "true", allowServerKeys: parsed.ALLOW_SERVER_KEYS === "true" };
 }

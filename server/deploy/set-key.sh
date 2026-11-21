@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# AI provayder kalitini xavfsiz qo'shish/almashtirish/o'chirish. Kalit ekranga chiqmaydi va tarixga tushmaydi.
+# SERVER darajasidagi AI kalitini qo'shish/o'chirish (faqat ALLOW_SERVER_KEYS=true bo'lganda ishlatiladi).
+# Oddiy holatda har bir foydalanuvchi o'z kalitini saytda kiritadi, bu skript kerak emas. Kalit ekranga chiqmaydi va tarixga tushmaydi.
 #   bash set-key.sh anthropic     Claude kalitini kiritish (yoqiladi)
 #   bash set-key.sh openai        OpenAI kalitini kiritish (yoqiladi)
 #   bash set-key.sh gemini        Gemini kalitini kiritish (yoqiladi)

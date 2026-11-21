@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { currentConsents } from "../consents.js";
 import { fail, type Env } from "../http.js";
-import { costUsd } from "../llm/pricing.js";
+import { recordUsage, sharedSpendUsd } from "../usage.js";
 import { ChainError, chainFor, legacyChain, runChain } from "../llm/multi.js";
 import { requireAuth } from "../session.js";
 
@@ -21,18 +21,17 @@ const schema = z.object({
 
 /** Ovoz -> matn. Audio faqat xotirada ushlanadi: diskka yoki bazaga YOZILMAYDI. Rozilik talab qilinadi. */
 voiceRoutes.post("/transcribe", async (c) => {
-  const { db, config, llm, limiter, now } = c.get("deps");
+  const { db, config, limiter, now, llmFor } = c.get("deps");
   const user = c.get("user")!;
-  if (!llm) return fail(c, 503, "llm_unavailable");
+  const resolved = llmFor(user.id);
+  if (!resolved) return fail(c, 403, "api_key_required");
+  const { llm, own } = resolved;
   if (!currentConsents(db, user.id).voice?.accepted) return fail(c, 403, "voice_consent_required");
   if (!limiter.take(`stt:${user.id}`, 20, MIN)) return fail(c, 429, "too_many_requests");
   const body = schema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return fail(c, 400, "audio_invalid");
 
-  const d = new Date(now());
-  const monthStart = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
-  const spent = (db.prepare("SELECT COALESCE(SUM(cost_usd),0) usd FROM usage WHERE user_id = ? AND created_at >= ?").get(user.id, monthStart) as { usd: number }).usd;
-  if (spent >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
+  if (!own && sharedSpendUsd(db, user.id, now()) >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
 
   const mime = body.data.mime.split(";")[0]!.toLowerCase();
   let r;
@@ -49,15 +48,14 @@ voiceRoutes.post("/transcribe", async (c) => {
     if (e instanceof ChainError && e.statuses.length && e.statuses.every((s) => s === 400)) return fail(c, 400, "audio_invalid");
     return fail(c, 503, code);
   }
-  db.prepare("INSERT INTO usage (user_id, conversation_id, model, tokens_in, tokens_out, cost_usd, created_at) VALUES (?,?,?,?,?,?,?)").run(
-    user.id, null, model, r.tokensIn, r.tokensOut, costUsd(model, r.tokensIn, r.tokensOut, now()), now(),
-  );
+  recordUsage(db, { userId: user.id, model, tokensIn: r.tokensIn, tokensOut: r.tokensOut, own, now: now() });
   return c.json({ text: r.text.replace(/\s+/g, " ").trim().slice(0, 4000) });
 });
 
 /** Interfeys: serverda ovozni matnga aylantirish bormi (bo'lmasa, brauzer tanishi ishlatiladi) */
 voiceRoutes.get("/status", (c) => {
-  const { config, llm } = c.get("deps");
-  const on = !!llm && chainFor({ llm, legacy: legacyChain(config) }, "stt").some((m) => m.startsWith("gemini-") || m.startsWith("gpt-"));
+  const { config, llmFor } = c.get("deps");
+  const resolved = llmFor(c.get("user")!.id);
+  const on = !!resolved && chainFor({ llm: resolved.llm, legacy: legacyChain(config) }, "stt").some((m) => m.startsWith("gemini-") || m.startsWith("gpt-"));
   return c.json({ server: on });
 });

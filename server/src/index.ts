@@ -32,9 +32,12 @@ const slotsByName: Record<string, Slot | null> = {
 };
 const order = config.LLM_PRIORITY.split(",").map((x) => x.trim()).filter(Boolean);
 const slots = [...new Set([...order, "gemini", "anthropic", "openai"])].map((n) => slotsByName[n]).filter((x): x is Slot => !!x);
-const llm = slots.length ? new LlmRouter(slots) : null;
-if (!llm) console.warn("[llm] hech bir AI kaliti yo'q (GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY): suhbat o'chiq");
-else console.log(`[llm] yoqilgan provayderlar (ustuvorlik bo'yicha): ${slots.map((x) => x.name).join(" > ")}`);
+// Standart: har bir foydalanuvchi FAQAT o'z API kaliti bilan ishlaydi (sarf uning shaxsiy hisobidan).
+// Server kalitlari faqat ALLOW_SERVER_KEYS=true bo'lganda, foydalanuvchining o'z kaliti bo'lmasa ishlatiladi.
+const llm = config.allowServerKeys && slots.length ? new LlmRouter(slots) : null;
+if (!config.KEYS_SECRET) console.warn("[keys] KEYS_SECRET yo'q: foydalanuvchi kalitlarini saqlab bo'lmaydi (install.sh uni avtomatik yaratadi)");
+if (llm) console.log(`[llm] server kalitlari yoqilgan (ALLOW_SERVER_KEYS): ${slots.map((x) => x.name).join(" > ")}`);
+else console.log("[llm] har bir foydalanuvchi o'z AI kaliti bilan ishlaydi");
 const app = createApp({ config, db, mailer: createMailer(config), google, llm });
 
 // Muddati o'tgan sessiya va tokenlarni tozalash

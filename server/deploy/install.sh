@@ -128,8 +128,9 @@ TXT
   done
 
   echo
-  echo "  [5/5] GEMINI API KALITI: hozir kerak emas. Shunchaki Enter bosing."
-  read -r -s -p "        Gemini (Enter): " GEM; echo
+  echo "  [5/5] AI kalitlari endi har bir foydalanuvchi tomonidan saytning o'zida (O'z kaliti) kiritiladi."
+  echo "        Server kaliti kerak emas: shunchaki Enter bosing."
+  read -r -s -p "        Server Gemini kaliti (Enter = yo'q): " GEM; echo
   M_FROM="DODA <$S_USER>"
 
   echo
@@ -151,13 +152,25 @@ TXT
     echo "SMTP_PASS=$S_PASS"
     echo "MAIL_FROM=\"$M_FROM\""
     [[ -n "$G_ID" ]] && echo "GOOGLE_CLIENT_ID=$G_ID" && echo "GOOGLE_CLIENT_SECRET=$G_SECRET"
-    [[ -n "$GEM" ]] && echo "GEMINI_API_KEY=$GEM"
+    [[ -n "$GEM" ]] && echo "GEMINI_API_KEY=$GEM" && echo "ALLOW_SERVER_KEYS=true"
     echo "LEGAL_VERSION=2026-11-draft"
   } > "$ENV_FILE"
   chmod 600 "$ENV_FILE"
   ok ".env yozildi (ruxsat 600)"
 fi
 [[ -f "$ENV_FILE" ]] || ((DRY)) || die ".env yo'q"
+
+# Foydalanuvchilarning shaxsiy AI kalitlarini shifrlash uchun asosiy sir (bir marta yaratiladi, keyin O'ZGARTIRILMAYDI)
+if ((DRY)); then note "(dry-run) KEYS_SECRET tekshiriladi/yaratiladi"
+elif grep -q '^KEYS_SECRET=.\{32,\}' "$ENV_FILE"; then ok "KEYS_SECRET bor (saqlangan foydalanuvchi kalitlari shu bilan shifrlangan)"
+else
+  KS="$( (openssl rand -base64 48 2>/dev/null || head -c 48 /dev/urandom | base64) | tr -d '\n=+/' | cut -c1-48)"
+  [[ ${#KS} -ge 32 ]] || die "KEYS_SECRET yaratib bo'lmadi"
+  grep -v '^KEYS_SECRET=' "$ENV_FILE" > "$ENV_FILE.tmp" || true
+  printf 'KEYS_SECRET=%s\n' "$KS" >> "$ENV_FILE.tmp"
+  cat "$ENV_FILE.tmp" > "$ENV_FILE"; rm -f "$ENV_FILE.tmp"; chmod 600 "$ENV_FILE"
+  ok "KEYS_SECRET yaratildi. MUHIM: .env faylini zaxiralang. Yo'qolsa, foydalanuvchilar kalitlarini qayta kiritishadi"
+fi
 
 # ---------------------------------------------------------------- 5. Ishga tushirish
 say "5/7 Konteynerni qurish va ishga tushirish"
