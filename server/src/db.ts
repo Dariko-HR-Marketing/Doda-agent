@@ -54,6 +54,15 @@ const MIGRATIONS: string[] = [
     created_at INTEGER NOT NULL
   );
   `,
+  `
+  CREATE TABLE oauth_states (
+    state_hash TEXT PRIMARY KEY,
+    verifier   TEXT NOT NULL,
+    consents   TEXT,
+    locale     TEXT NOT NULL DEFAULT 'uz',
+    expires_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export function openDb(path: string): Db {

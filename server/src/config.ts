@@ -12,6 +12,16 @@ const schema = z.object({
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
   /** Rozilik matni (oferta) versiyasi. Matn o'zgarganda yangilanadi */
   LEGAL_VERSION: z.string().default("2026-11-draft"),
+  /** Shu serverning ommaviy manzili (Google redirect uchun) */
+  PUBLIC_API_URL: z.string().url().default("https://doda-api.tajriba24.uz"),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  /** Yuboruvchi manzili, masalan: DODA <noreply@example.com> */
+  MAIL_FROM: z.string().optional(),
 });
 
 export type Config = z.infer<typeof schema> & { isProd: boolean; trustProxy: boolean };

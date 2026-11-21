@@ -1,0 +1,32 @@
+# Faqat DODA server. Boshqa konteynerlarga tegmaydi.
+# Caddy (vps-web-1) ishlayotgan Docker tarmog'iga ulanadi; tashqariga port ochilmaydi.
+# Ishga tushirish: CADDY_NETWORK=<tarmoq nomi> docker compose up -d --build
+services:
+  doda-server:
+    build:
+      context: ..
+    container_name: doda-server
+    restart: unless-stopped
+    env_file: ../.env
+    volumes:
+      - doda-data:/app/data
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - caddy
+
+volumes:
+  doda-data:
+
+networks:
+  caddy:
+    external: true
+    name: ${CADDY_NETWORK:?CADDY_NETWORK ni belgilang (docker inspect vps-web-1 dan)}

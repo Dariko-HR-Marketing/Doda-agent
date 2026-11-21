@@ -1,15 +1,17 @@
 import { Hono } from "hono";
 import { pickLocale } from "./i18n.js";
-import { clientIp, fail, type Deps, type Env } from "./http.js";
+import { clientIp, fail, type Deps, type Env, type ResolvedDeps } from "./http.js";
 import { RateLimiter } from "./rateLimit.js";
 import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/account.js";
+import { googleRoutes } from "./routes/google.js";
 
 export function createApp(input: Deps): Hono<Env> {
-  const deps: Required<Deps> = {
+  const deps: ResolvedDeps = {
     ...input,
     limiter: input.limiter ?? new RateLimiter(input.now),
     now: input.now ?? Date.now,
+    google: input.google ?? null,
   };
   const { config } = deps;
   const app = new Hono<Env>();
@@ -56,6 +58,7 @@ export function createApp(input: Deps): Hono<Env> {
 
   app.get("/api/health", (c) => c.json({ ok: true, version: "0.1.0" }));
   app.route("/api/auth", authRoutes);
+  app.route("/api/auth/google", googleRoutes);
   app.route("/api/account", accountRoutes);
 
   app.notFound((c) => fail(c, 404, "not_found"));

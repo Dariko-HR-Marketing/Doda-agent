@@ -2,17 +2,27 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { openDb } from "./db.js";
-import { ConsoleMailer } from "./mailer.js";
+import { HttpGoogleClient } from "./google.js";
+import { createMailer } from "./mailer.js";
 
 const config = loadConfig();
 const db = openDb(config.DB_PATH);
-const app = createApp({ config, db, mailer: new ConsoleMailer() });
+const google =
+  config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET
+    ? new HttpGoogleClient(
+        config.GOOGLE_CLIENT_ID,
+        config.GOOGLE_CLIENT_SECRET,
+        `${config.PUBLIC_API_URL}/api/auth/google/callback`,
+      )
+    : null;
+const app = createApp({ config, db, mailer: createMailer(config), google });
 
 // Muddati o'tgan sessiya va tokenlarni tozalash
 function cleanup(): void {
   const t = Date.now();
   db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(t);
   db.prepare("DELETE FROM email_tokens WHERE expires_at < ?").run(t);
+  db.prepare("DELETE FROM oauth_states WHERE expires_at < ?").run(t);
 }
 cleanup();
 const timer = setInterval(cleanup, 60 * 60 * 1000);

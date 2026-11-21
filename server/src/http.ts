@@ -4,6 +4,7 @@ import type { Config } from "./config.js";
 import type { Db } from "./db.js";
 import { t, type Locale, type MessageCode } from "./i18n.js";
 import type { Mailer } from "./mailer.js";
+import type { GoogleClient } from "./google.js";
 import type { RateLimiter } from "./rateLimit.js";
 
 export interface Deps {
@@ -12,7 +13,10 @@ export interface Deps {
   mailer: Mailer;
   limiter?: RateLimiter;
   now?: () => number;
+  google?: GoogleClient | null;
 }
+
+export type ResolvedDeps = Required<Omit<Deps, "google">> & { google: GoogleClient | null };
 
 export interface AuthedUser {
   id: string;
@@ -23,7 +27,7 @@ export interface AuthedUser {
 
 export type Env = {
   Variables: {
-    deps: Required<Deps>;
+    deps: ResolvedDeps;
     locale: Locale;
     ip: string;
     user?: AuthedUser;
