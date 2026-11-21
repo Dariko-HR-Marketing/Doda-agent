@@ -98,6 +98,19 @@
     }
   }
 
+  /** Aloqa yo'qligida sababini aniqlaydi: tarmoq/TLS mi yoki brauzer (CORS/kengaytma) himoyasimi */
+  async function diagnose() {
+    const lines = [API.replace(/^https?:\/\//, '')];
+    let reach = false;
+    let cors = false;
+    try { await fetch(API + '/api/health', { mode: 'no-cors', cache: 'no-store' }); reach = true; } catch { /* yetib bo'lmadi */ }
+    try { const r = await fetch(API + '/api/health', { cache: 'no-store' }); cors = r.ok; } catch { /* CORS yoki tarmoq */ }
+    lines.push('ulanish: ' + (reach ? 'ha' : "yo'q"));
+    lines.push('javob o‘qildi: ' + (cors ? 'ha' : "yo'q"));
+    lines.push('sahifa: ' + location.origin);
+    return lines.join(' · ');
+  }
+
   const errText = (r) => (r.network ? tr('network') : r.data?.error?.message || tr('network'));
 
   /* ---------- holat ---------- */
@@ -108,6 +121,7 @@
   let user = null;
   let draft = { email: '' };
   let resetToken = null;
+  let diag = '';
 
   function clearHash() {
     history.replaceState(null, '', location.pathname + location.search);
@@ -311,7 +325,7 @@
   }
 
   function messageView(titleKey, textKey, actions) {
-    return [...head(titleKey), h('div', { class: 'auth-message' }, h('h2', {}, tr(titleKey)), h('p', {}, tr(textKey)), actions)];
+    return [...head(titleKey), h('div', { class: 'auth-message' }, h('h2', {}, tr(titleKey)), h('p', {}, tr(textKey)), view === 'offline' && diag ? h('p', { class: 'auth-diag' }, diag) : null, actions)];
   }
 
   function render() {
@@ -501,7 +515,7 @@
     }
 
     const me = await api('/api/auth/me');
-    if (me.network) { showAuth('offline'); return; }
+    if (me.network) { diag = await diagnose(); showAuth('offline'); return; }
     if (me.status === 200) { onLoggedIn(me.data.user); return; }
     if (startView === 'verified') { notice = null; showAuth('verified'); return; }
     showAuth(startView, { notice: startNotice });
