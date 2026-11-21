@@ -2,6 +2,14 @@
 (() => {
   'use strict';
 
+  // "doda.tajriba24.uz." (oxirida nuqta bilan) boshqa "origin" hisoblanadi va API uni rad etadi: nuqtasiz manzilga o'tkazamiz
+  if (location.hostname.endsWith('.')) {
+    const u = new URL(location.href);
+    u.hostname = u.hostname.replace(/\.+$/, '');
+    location.replace(u.href);
+    return;
+  }
+
   const host = location.hostname;
   const API = host === 'localhost' || host === '127.0.0.1' ? 'http://localhost:8787' : 'https://doda-api.tajriba24.uz';
 
