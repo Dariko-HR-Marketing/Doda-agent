@@ -187,6 +187,33 @@ const MIGRATIONS: string[] = [
   -- own=1: sarf foydalanuvchining o'z kaliti bilan (uning shaxsiy hisobidan); own=0: server kaliti
   ALTER TABLE usage ADD COLUMN own INTEGER NOT NULL DEFAULT 0;
   `,
+  `
+  -- Agent imkoniyatlari (katalogdan tanlangan id lar) va foydalanuvchining o'z qo'shimchalari
+  ALTER TABLE agents ADD COLUMN capabilities TEXT NOT NULL DEFAULT '[]';
+  ALTER TABLE agents ADD COLUMN custom_items TEXT NOT NULL DEFAULT '[]';
+  -- To-do ro'yxatlari: agent_id NULL = DODA (bosh agent) ro'yxati, aks holda shu agentniki
+  CREATE TABLE todos (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    agent_id   TEXT REFERENCES agents(id) ON DELETE CASCADE,
+    text       TEXT NOT NULL,
+    done       INTEGER NOT NULL DEFAULT 0,
+    priority   INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE INDEX todos_scope ON todos(user_id, agent_id, done);
+  -- Har bir agentning shaxsiy xotirasi (boshqa agent ko'rmaydi)
+  CREATE TABLE agent_memory (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id   TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL CHECK (kind IN ('fact','lesson','preference')),
+    text       TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX agent_memory_agent ON agent_memory(agent_id, created_at);
+  `,
 ];
 
 export function openDb(path: string): Db {

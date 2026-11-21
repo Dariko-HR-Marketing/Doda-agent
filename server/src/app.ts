@@ -12,6 +12,7 @@ import { taskRoutes } from "./routes/tasks.js";
 import { agentRoutes } from "./routes/agents.js";
 import { voiceRoutes } from "./routes/voice.js";
 import { keyRoutes } from "./routes/keys.js";
+import { dodaRoutes, todoRoutes } from "./routes/todos.js";
 import { UserLlm, defaultFactory } from "./userkeys.js";
 
 export function createApp(input: Deps): Hono<Env> {
@@ -96,6 +97,8 @@ export function createApp(input: Deps): Hono<Env> {
   app.route("/api/agents", agentRoutes);
   app.route("/api/voice", voiceRoutes);
   app.route("/api/keys", keyRoutes);
+  app.route("/api/todos", todoRoutes);
+  app.route("/api/doda", dodaRoutes);
   app.route("/api", chatRoutes);
 
   app.notFound((c) => fail(c, 404, "not_found"));

@@ -69,6 +69,8 @@ const messages = {
   agent_empty: { uz: "Agent bo‘sh javob qaytardi. Topshiriqni aniqroq yozib, qayta urinib ko‘ring.", ru: "Агент вернул пустой ответ. Уточните задание и повторите." },
   voice_consent_required: { uz: "Ovozli kiritish uchun avval rozilik bering.", ru: "Для голосового ввода сначала дайте согласие." },
   audio_invalid: { uz: "Ovoz yozuvi noto‘g‘ri yoki juda katta. Qisqaroq gapirib, qayta urinib ko‘ring.", ru: "Запись голоса некорректна или слишком большая. Скажите короче и повторите." },
+  too_many_memory: { uz: "Xotira to‘ldi (100 ta yozuv). Keraksizlarini o‘chiring.", ru: "Память заполнена (100 записей). Удалите ненужные." },
+  too_many_todos: { uz: "Ro‘yxat to‘ldi (200 ta). Bajarilganlarini tozalang.", ru: "Список заполнен (200). Очистите выполненные." },
   plan_failed: { uz: "Reja tuzib bo‘lmadi. Maqsadni aniqroq yozib, qayta urinib ko‘ring.", ru: "Не удалось составить план. Опишите цель точнее и повторите." },
   not_found: { uz: "Topilmadi.", ru: "Не найдено." },
   server_error: { uz: "Ichki xatolik.", ru: "Внутренняя ошибка." },

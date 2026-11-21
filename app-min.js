@@ -860,6 +860,7 @@
       h('b', {}, tr('keyBannerT')), h('p', {}, tr('keyBannerP')),
       h('div', { class: 'min-consent-actions' }, h('button', { type: 'button', class: 'min-btn primary', onclick: () => openOverlay('keys') }, tr('keyBannerB'))));
   }
+  document.addEventListener('doda:open-keys', () => { closeFiles(true); openOverlay('keys'); });
   document.addEventListener('doda:keys', () => { refreshKeys(); serverSttRefresh(); });
   function serverSttRefresh() {
     api('/api/voice/status').then((r) => { if (r.status === 200) serverStt = !!r.data.server; if (root && ui.micBtn) ui.micBtn.hidden = !speechCtor() && !canRecord(); });

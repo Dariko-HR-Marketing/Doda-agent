@@ -7,7 +7,7 @@ const PROFILE_CAP = 1500;
 const FACTS_CAP = 3000;
 
 /** Maxfiy ko'rinadigan matnlar xotiraga YOZILMAYDI */
-const SENSITIVE = [
+export const SENSITIVE = [
   /\b\d{12,19}\b/, // karta/hisob raqami
   /parol|пароль|password|passcode|passphrase/i,
   /api[\s_-]?key|secret|токен|token\b/i,
@@ -160,4 +160,27 @@ export function appendFacts(db: Db, userId: string, facts: string[], now: number
   lines.push(...facts.map((f) => "- " + f));
   if (lines.length > MAX_FACTS) lines = lines.slice(lines.length - MAX_FACTS);
   writeFile(db, userId, FACTS_PATH, header + lines.join("\n") + "\n", "doda", now);
+}
+
+export const isSensitive = (text: string): boolean => SENSITIVE.some((re) => re.test(text));
+
+/** DODA faktlari ro'yxati (tartib raqami bilan) */
+export function listFacts(db: Db, userId: string): string[] {
+  return existingFacts(db, userId);
+}
+
+/** n-faktni olib tashlaydi (0 dan boshlab). Sarlavha/izohlar saqlanadi. */
+export function removeFact(db: Db, userId: string, index: number, now: number): boolean {
+  let all: string[];
+  try {
+    all = readFile(db, userId, FACTS_PATH).content.split("\n");
+  } catch {
+    return false;
+  }
+  const factLines = all.map((l, i) => ({ l, i })).filter((x) => /^[-*]\s/.test(x.l));
+  const target = factLines[index];
+  if (!target) return false;
+  all.splice(target.i, 1);
+  writeFile(db, userId, FACTS_PATH, all.join("\n"), "user", now);
+  return true;
 }
