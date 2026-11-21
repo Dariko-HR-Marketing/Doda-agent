@@ -29,6 +29,8 @@ const schema = z.object({
   GEMINI_MODEL_LIGHT: z.string().default("gemini-3.5-flash-lite"),
   /** Murakkab ishlar uchun asosiy model */
   GEMINI_MODEL_MAIN: z.string().default("gemini-3.8-flash"),
+  /** Ovozni matnga aylantirish modeli */
+  GEMINI_MODEL_STT: z.string().default("gemini-3.5-flash-lite"),
   /** Bitta foydalanuvchi uchun oylik limit (USD) */
   MONTHLY_BUDGET_USD: z.coerce.number().positive().default(5),
   /** Modelga yuboriladigan oxirgi xabarlar soni */

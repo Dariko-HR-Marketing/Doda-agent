@@ -10,6 +10,7 @@ import { chatRoutes } from "./routes/chat.js";
 import { workspaceRoutes } from "./routes/workspace.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { agentRoutes } from "./routes/agents.js";
+import { voiceRoutes } from "./routes/voice.js";
 
 export function createApp(input: Deps): Hono<Env> {
   const deps: ResolvedDeps = {
@@ -36,12 +37,13 @@ export function createApp(input: Deps): Hono<Env> {
 
   // So'rov hajmi: odatda 16 KB; ishchi maydon fayllari uchun kattaroq (fayl ko'pi bilan 64 KB + JSON/Unicode qoldig'i)
   const small = bodyLimit({ maxSize: 16 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") });
+  const audio = bodyLimit({ maxSize: 2 * 1024 * 1024, onError: (c) => fail(c as never, 400, "audio_invalid") });
   const large = bodyLimit({ maxSize: 300 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") });
   // /api/chat: xabar 20 000 belgigacha (kirill UTF-8 da 2 baytdan) + biriktirilgan matnli fayllar
   const chatLimit = bodyLimit({ maxSize: 100 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") });
   app.use("/api/*", (c, next) => {
     const path = c.req.path;
-    return (path.startsWith("/api/workspace/") ? large : path === "/api/chat" ? chatLimit : small)(c, next);
+    return (path.startsWith("/api/workspace/") ? large : path === "/api/voice/transcribe" ? audio : path === "/api/chat" ? chatLimit : small)(c, next);
   });
 
   // CORS: faqat bizning frontend manzilimiz
@@ -79,6 +81,7 @@ export function createApp(input: Deps): Hono<Env> {
   app.route("/api/workspace", workspaceRoutes);
   app.route("/api/tasks", taskRoutes);
   app.route("/api/agents", agentRoutes);
+  app.route("/api/voice", voiceRoutes);
   app.route("/api", chatRoutes);
 
   app.notFound((c) => fail(c, 404, "not_found"));

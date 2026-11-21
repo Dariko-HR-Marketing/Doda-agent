@@ -35,6 +35,30 @@ export class GeminiProvider implements LlmProvider {
     return { text, tokensIn: u?.promptTokenCount ?? 0, tokensOut: (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0) };
   }
 
+  async transcribe(p: { model: string; mime: string; data: string; lang: "uz" | "ru"; signal?: AbortSignal }): Promise<LlmCompletion> {
+    const url = `${this.baseUrl}/v1beta/models/${encodeURIComponent(p.model)}:generateContent`;
+    const signals = [AbortSignal.timeout(this.timeoutMs), ...(p.signal ? [p.signal] : [])];
+    const langName = p.lang === "ru" ? "Russian" : "Uzbek (Latin script, not Cyrillic)";
+    const instruction = [
+      `Transcribe the speech in this audio exactly as spoken. The speaker most likely speaks ${langName}; Russian or Uzbek words may be mixed.`,
+      "Output ONLY the transcription text: no quotes, no timestamps, no translation, no comments.",
+      "If there is no intelligible speech, output nothing.",
+    ].join(" ");
+    const res = await this.fetchFn(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": this.apiKey },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ inlineData: { mimeType: p.mime, data: p.data } }, { text: instruction }] }],
+      }),
+      signal: AbortSignal.any(signals),
+    });
+    if (!res.ok) throw new LlmHttpError(res.status);
+    const j = (await res.json()) as GeminiChunk;
+    const text = (j.candidates?.[0]?.content?.parts ?? []).filter((x) => x.text && !x.thought).map((x) => x.text).join("");
+    const u = j.usageMetadata;
+    return { text, tokensIn: u?.promptTokenCount ?? 0, tokensOut: (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0) };
+  }
+
   async *stream(p: { model: string; system: string; messages: LlmMessage[]; signal?: AbortSignal }): AsyncIterable<LlmEvent> {
     const url = `${this.baseUrl}/v1beta/models/${encodeURIComponent(p.model)}:streamGenerateContent?alt=sse`;
     const signals = [AbortSignal.timeout(this.timeoutMs), ...(p.signal ? [p.signal] : [])];

@@ -28,6 +28,7 @@ const ok = (parts: string[], tin = 100, tout = 50): ((c: Call) => AsyncIterable<
   };
 
 const fake: LlmProvider = {
+  transcribe: async () => ({ text: "", tokensIn: 0, tokensOut: 0 }),
   complete: async () => ({ text: '{"facts": []}', tokensIn: 0, tokensOut: 0 }),
   stream: (p) => {
     const c = { model: p.model, system: p.system, messages: p.messages.map((m) => ({ ...m })) };

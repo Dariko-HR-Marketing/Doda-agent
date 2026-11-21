@@ -13,15 +13,15 @@
       today: 'Bugun', yesterday: 'Kecha', week: 'Oxirgi 7 kun', older: 'Oldinroq', rename: 'Nomini o‘zgartirish', del: 'O‘chirish', delSure: 'Aniq o‘chiraman', more: 'Amallar',
       account: 'Akkaunt', language: 'Til', logout: 'Chiqish', sbOpen: 'Panelni ochish', sbClose: 'Panelni yopish',
       morning: 'Xayrli tong', day: 'Xayrli kun', evening: 'Xayrli kech', night: 'Xayrli tun', ask: 'Nima haqida gaplashamiz?',
-      listening: 'Eshityapman… gapiring', sending: 'Yuborilmoqda…', cancel: 'Bekor qilish',
+      listening: 'Eshityapman… gapiring', recBusy: 'Matnga aylantirilmoqda…', recDiscard: 'Yozuvni bekor qilish', recStop: 'To‘xtatish: matnni ko‘rib, tahrirlash', recSend: 'To‘xtatish va yuborish', e_short: 'Yozuv juda qisqa. Qayta urinib ko‘ring.', e_stt: 'Ovozni matnga aylantirib bo‘lmadi. Qayta urinib ko‘ring.', sending: 'Yuborilmoqda…', cancel: 'Bekor qilish',
       netErr: 'Aloqa xatosi. Qayta urinib ko‘ring.', remembered: 'Eslab qoldim: ', limit: 'Oylik limit',
       attach: 'Fayl biriktirish', attachHint: 'Matnli fayllar: .txt .md .csv .json', removeAtt: 'Olib tashlash', file: 'Fayl',
       attOnly: 'Shu faylni ko‘rib chiqing.', fileBig: 'Fayl juda katta (har biri 12 000 belgigacha, jami 16 000).', binary: 'Hozircha faqat matnli fayllar qo‘llanadi.', tooMany: 'Ko‘pi bilan 3 ta fayl.',
       model: 'Model', auto: 'Avto', autoD: 'DODA o‘zi tanlaydi (tejamkor)', fast: 'Tez', fastD: 'Gemini 3.5 Flash-Lite: oddiy savollar uchun', smart: 'Aqlli', smartD: 'Gemini 3.8 Flash: murakkab ishlar uchun',
       copy: 'Nusxa olish', copied: 'Nusxalandi',
-      note: 'DODA xato qilishi mumkin. Matn Google Gemini xizmatiga yuboriladi: maxfiy ma’lumot yozmang.',
+      note: 'DODA xato qilishi mumkin. Matn va ovoz yozuvi Google Gemini xizmatiga yuboriladi: maxfiy ma’lumot yozmang.',
       consentTitle: 'Ovozli kiritish',
-      consentText: 'Brauzeringiz ovozingizni matnga aylantirish uchun Google xizmatiga yuboradi. Bunga roziligingiz kerak (keyin akkauntda o‘chira olasiz).',
+      consentText: 'Gapirganingizda ovoz yozib olinadi va matnga aylantirish uchun Google Gemini xizmatiga yuboriladi. Ovoz yozuvi DODA serverida saqlanmaydi. Bunga roziligingiz kerak (keyin akkauntda o‘chira olasiz).',
       agree: 'Roziman', decline: 'Hozir emas',
       e_not_allowed: 'Mikrofonga ruxsat bering (manzil satridagi qulf belgisi orqali).', e_no_speech: 'Ovoz eshitilmadi. Qayta urinib ko‘ring.',
       e_lang: 'Bu til brauzerda ovoz uchun qo‘llab-quvvatlanmaydi.', e_network: 'Ovozni matnga o‘girish xizmatiga ulanib bo‘lmadi.', e_other: 'Ovozli kiritishda xatolik.',
@@ -32,15 +32,15 @@
       today: 'Сегодня', yesterday: 'Вчера', week: 'Последние 7 дней', older: 'Ранее', rename: 'Переименовать', del: 'Удалить', delSure: 'Точно удалить', more: 'Действия',
       account: 'Аккаунт', language: 'Язык', logout: 'Выйти', sbOpen: 'Открыть панель', sbClose: 'Закрыть панель',
       morning: 'Доброе утро', day: 'Добрый день', evening: 'Добрый вечер', night: 'Доброй ночи', ask: 'О чём поговорим?',
-      listening: 'Слушаю… говорите', sending: 'Отправка…', cancel: 'Отмена',
+      listening: 'Слушаю… говорите', recBusy: 'Преобразую в текст…', recDiscard: 'Отменить запись', recStop: 'Остановить: посмотреть и править текст', recSend: 'Остановить и отправить', e_short: 'Запись слишком короткая. Повторите.', e_stt: 'Не удалось преобразовать речь в текст. Повторите.', sending: 'Отправка…', cancel: 'Отмена',
       netErr: 'Ошибка связи. Повторите попытку.', remembered: 'Запомнил: ', limit: 'Месячный лимит',
       attach: 'Прикрепить файл', attachHint: 'Текстовые файлы: .txt .md .csv .json', removeAtt: 'Убрать', file: 'Файл',
       attOnly: 'Посмотрите этот файл.', fileBig: 'Файл слишком большой (до 12 000 символов каждый, всего 16 000).', binary: 'Пока поддерживаются только текстовые файлы.', tooMany: 'Не более 3 файлов.',
       model: 'Модель', auto: 'Авто', autoD: 'DODA выбирает сама (экономно)', fast: 'Быстро', fastD: 'Gemini 3.5 Flash-Lite: для простых вопросов', smart: 'Умно', smartD: 'Gemini 3.8 Flash: для сложных задач',
       copy: 'Копировать', copied: 'Скопировано',
-      note: 'DODA может ошибаться. Текст отправляется в Google Gemini: не пишите конфиденциальное.',
+      note: 'DODA может ошибаться. Текст и запись голоса отправляются в Google Gemini: не пишите конфиденциальное.',
       consentTitle: 'Голосовой ввод',
-      consentText: 'Браузер отправляет вашу речь в сервис Google для преобразования в текст. Для этого нужно ваше согласие (позже можно отключить в аккаунте).',
+      consentText: 'При разговоре голос записывается и отправляется в сервис Google Gemini для преобразования в текст. Запись не сохраняется на сервере DODA. Для этого нужно ваше согласие (позже можно отключить в аккаунте).',
       agree: 'Согласен', decline: 'Не сейчас',
       e_not_allowed: 'Разрешите доступ к микрофону (значок замка в адресной строке).', e_no_speech: 'Речь не распознана. Повторите.',
       e_lang: 'Этот язык не поддерживается браузером для голоса.', e_network: 'Не удалось подключиться к сервису распознавания речи.', e_other: 'Ошибка голосового ввода.',
@@ -148,6 +148,7 @@
   let listening = false;
   let autoTimer = null;
   let micError = false;
+  let recAudio = null;
   let pop = null;
   let files = null;
   let atts = [];
@@ -215,8 +216,15 @@
     ui.atts = h('div', { class: 'cmp-atts' });
     ui.consent = h('div', { class: 'min-consent', hidden: true });
     ui.live = h('div', { class: 'min-live', role: 'status', 'aria-live': 'polite' });
+    ui.recCancel = h('button', { type: 'button', class: 'min-circle', onclick: () => finishRec('cancel') }, svg(IC.x));
+    ui.recCanvas = h('canvas', { class: 'rec-wave', 'aria-hidden': 'true' });
+    ui.recText = h('span', { class: 'rec-text', hidden: true, role: 'status' });
+    ui.recTime = h('span', { class: 'rec-time' }, '0:00');
+    ui.recStop = h('button', { type: 'button', class: 'min-circle rec-stop', onclick: () => finishRec('stop') }, svg(IC.stop, 18));
+    ui.recSend = h('button', { type: 'button', class: 'min-circle rec-send', onclick: () => finishRec('send') }, svg(IC.up));
+    ui.recBar = h('div', { class: 'rec-bar', hidden: true }, ui.recCancel, h('div', { class: 'rec-mid' }, ui.recCanvas, ui.recText), ui.recTime, ui.recStop, ui.recSend);
     ui.form = h('form', { class: 'cmp', onsubmit: onSubmit }, ui.consent, ui.atts, ui.input,
-      h('div', { class: 'cmp-row' }, ui.plusBtn, h('span', { class: 'cmp-gap' }), ui.tierBtn, ui.micBtn, ui.sendBtn), ui.fileInput);
+      h('div', { class: 'cmp-row' }, ui.plusBtn, h('span', { class: 'cmp-gap' }), ui.tierBtn, ui.micBtn, ui.sendBtn), ui.recBar, ui.fileInput);
     ui.note = h('p', { class: 'min-note' });
 
     ui.input.addEventListener('input', () => { autoGrow(); cancelAuto(); updateSend(); });
@@ -231,7 +239,7 @@
     root = h('div', { id: 'min', class: 'min' }, ui.sb, ui.backdrop, ui.mn);
     document.body.append(root);
 
-    if (!speechCtor()) ui.micBtn.hidden = true;
+    if (!speechCtor() && !canRecord()) ui.micBtn.hidden = true;
     let open = !isMobile();
     try { const v = localStorage.getItem('doda_sb'); if (v === '0' && !isMobile()) open = false; } catch { /* ixtiyoriy */ }
     setSidebar(open, true);
@@ -283,6 +291,8 @@
     ui.brand.setAttribute('aria-label', tr('newChat'));
     ui.rowNew.lastChild.textContent = tr('newChat');
     ui.rowSearch.lastChild.textContent = tr('search');
+    ui.recCancel.setAttribute('aria-label', tr('recDiscard')); ui.recStop.setAttribute('aria-label', tr('recStop')); ui.recSend.setAttribute('aria-label', tr('recSend'));
+    ui.recStop.title = tr('recStop'); ui.recSend.title = tr('recSend'); ui.recCancel.title = tr('recDiscard');
     ui.rowTasks.lastChild.textContent = tr('tasksT');
     ui.rowAgents.lastChild.textContent = tr('agentsT');
     ui.rowFiles.lastChild.textContent = tr('files');
@@ -649,14 +659,16 @@
   }
   async function grantVoice() {
     const r = await api('/api/account/consents', { method: 'POST', body: { type: 'voice', accepted: true } });
-    if (r.status === 200) { voiceAllowed = true; ui.consent.hidden = true; startVoice(); }
+    if (r.status === 200) { voiceAllowed = true; ui.consent.hidden = true; beginVoice(); }
   }
   function toggleVoice() {
     if (listening) { stopVoice(false); return; }
+    if (recAudio) return;
     cancelAuto();
     if (voiceAllowed === false) { ui.consent.hidden = false; renderConsent(); return; }
-    startVoice();
+    beginVoice();
   }
+  const beginVoice = () => (canRecord() ? startRec() : startVoice());
   function voiceMsg(code) {
     return { 'not-allowed': 'e_not_allowed', 'service-not-allowed': 'e_not_allowed', 'no-speech': 'e_no_speech', 'language-not-supported': 'e_lang', network: 'e_network' }[code] || 'e_other';
   }
@@ -691,7 +703,127 @@
     };
     try { rec.start(); } catch { micError = true; setLive(tr('e_other')); }
   }
+
+  /* ---------- ovoz: yozib olish, to'lqin, Gemini orqali matn (Gemini ilovasi uslubida) ---------- */
+  const REC_MAX_S = 90;
+  const canRecord = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  function pickMime() {
+    for (const m of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']) {
+      try { if (MediaRecorder.isTypeSupported(m)) return m; } catch { /* ixtiyoriy */ }
+    }
+    return '';
+  }
+  function setRecUi(on, busy) {
+    ui.form.classList.toggle('recording', on);
+    ui.recBar.hidden = !on;
+    ui.recCanvas.hidden = !!busy; ui.recText.hidden = !busy;
+    ui.recText.textContent = busy ? tr('recBusy') : '';
+    ui.recStop.disabled = ui.recSend.disabled = ui.recCancel.disabled = !!busy;
+    ui.recTime.hidden = !!busy;
+  }
+  function drawWave(r) {
+    const cv = ui.recCanvas;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(40, cv.clientWidth); const hgt = Math.max(20, cv.clientHeight);
+    if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(hgt * dpr); }
+    const g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, hgt);
+    const step = 6; const n = Math.floor(w / step);
+    const hist = r.hist.slice(-n);
+    g.fillStyle = '#cfe6ec';
+    for (let i = 0; i < n; i++) {
+      const k = i - (n - hist.length);
+      const a = k >= 0 ? hist[k] : 0;
+      const bh = Math.max(2, Math.min(hgt, a * hgt));
+      g.fillRect(i * step, (hgt - bh) / 2, 2.5, bh);
+    }
+  }
+  async function startRec() {
+    if (recAudio) return;
+    setLive('');
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+    catch { setLive(tr('e_not_allowed')); return; }
+    if (!root) { stream.getTracks().forEach((t) => t.stop()); return; }
+    const mime = pickMime();
+    let mr;
+    try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : undefined); }
+    catch { stream.getTracks().forEach((t) => t.stop()); setLive(tr('e_other')); return; }
+    const r = { stream, mr, chunks: [], hist: [], t0: Date.now(), ending: false, mode: 'stop', base: ui.input.value.trim(), ctx: null, timer: null, tick: null };
+    recAudio = r;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      r.ctx = new AC();
+      const an = r.ctx.createAnalyser(); an.fftSize = 512;
+      r.ctx.createMediaStreamSource(stream).connect(an);
+      const buf = new Uint8Array(an.fftSize);
+      r.tick = setInterval(() => {
+        an.getByteTimeDomainData(buf);
+        let sum = 0; for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
+        r.hist.push(Math.min(1, Math.sqrt(sum / buf.length) * 4));
+        if (r.hist.length > 400) r.hist.splice(0, 100);
+        drawWave(r);
+      }, 60);
+    } catch { /* to'lqinsiz ham yozish ishlaydi */ }
+    mr.ondataavailable = (e) => { if (e.data && e.data.size) r.chunks.push(e.data); };
+    mr.onstop = () => onRecStop(r);
+    mr.start(250);
+    setRecUi(true, false);
+    ui.micBtn.classList.add('live');
+    const upd = () => {
+      const s = Math.floor((Date.now() - r.t0) / 1000);
+      ui.recTime.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      if (s >= REC_MAX_S) finishRec('stop');
+    };
+    upd(); r.timer = setInterval(upd, 500);
+  }
+  function finishRec(mode) {
+    const r = recAudio;
+    if (!r || r.ending) return;
+    r.ending = true; r.mode = mode;
+    try { if (r.mr.state !== 'inactive') r.mr.stop(); else onRecStop(r); } catch { onRecStop(r); }
+  }
+  function cleanupRec(r) {
+    clearInterval(r.timer); clearInterval(r.tick);
+    r.stream.getTracks().forEach((t) => t.stop());
+    if (r.ctx) { try { r.ctx.close(); } catch { /* ixtiyoriy */ } }
+  }
+  function blobToB64(blob) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+      fr.onerror = () => reject(fr.error);
+      fr.readAsDataURL(blob);
+    });
+  }
+  async function onRecStop(r) {
+    if (r.done) return; r.done = true;
+    cleanupRec(r);
+    const finish = () => { recAudio = null; if (!root) return; setRecUi(false, false); ui.micBtn.classList.remove('live'); };
+    if (r.mode === 'cancel' || !root) { finish(); return; }
+    const blob = new Blob(r.chunks, { type: (r.mr.mimeType || 'audio/webm').split(';')[0] === '' ? 'audio/webm' : (r.mr.mimeType || 'audio/webm') });
+    if (blob.size < 1200) { finish(); setLive(tr('e_short')); setTimeout(() => setLive(''), 3500); return; }
+    setRecUi(true, true);
+    let res;
+    try {
+      const data = await blobToB64(blob);
+      res = await api('/api/voice/transcribe', { method: 'POST', body: { mime: blob.type || 'audio/webm', data, lang: lang() } });
+    } catch { res = { status: 0, data: {} }; }
+    finish();
+    if (!root) return;
+    if (res.status === 403) { voiceAllowed = false; ui.consent.hidden = false; renderConsent(); return; }
+    const text = res.status === 200 && res.data && typeof res.data.text === 'string' ? res.data.text.trim() : null;
+    if (text === null) { setLive((res.data && res.data.error && res.data.error.message) || tr('e_stt')); setTimeout(() => setLive(''), 6000); return; }
+    if (!text) { setLive(tr('e_no_speech')); setTimeout(() => setLive(''), 3500); return; }
+    ui.input.value = [r.base, text].filter(Boolean).join(' ');
+    autoGrow(); updateSend();
+    if (r.mode === 'send' && !busy) onSubmit(new Event('submit'));
+    else ui.input.focus({ preventScroll: true });
+  }
+
   function stopVoice(silent) {
+    if (silent && recAudio && !recAudio.ending) finishRec('cancel');
     if (rec) { try { silent ? rec.abort() : rec.stop(); } catch { /* ixtiyoriy */ } }
     if (silent) { listening = false; if (ui.micBtn) ui.micBtn.classList.remove('live'); }
   }
@@ -725,6 +857,7 @@
     else if (files) closeFiles();
     else if (isMobile() && root.classList.contains('sb-open')) setSidebar(false, true);
     else if (autoTimer) cancelAuto();
+    else if (recAudio) finishRec('cancel');
     else if (listening) stopVoice(true);
   });
 

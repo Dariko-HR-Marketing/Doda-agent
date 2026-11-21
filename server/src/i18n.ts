@@ -59,6 +59,8 @@ const messages = {
   too_many_tasks: { uz: "Vazifalar soni chegarasiga yetildi (100 ta). Eskilarini arxivlang yoki o‘chiring.", ru: "Достигнут лимит задач (100). Архивируйте или удалите старые." },
   too_many_agents: { uz: "Agentlar soni chegarasiga yetildi (20 ta). Keraksizini o‘chiring.", ru: "Достигнут лимит агентов (20). Удалите ненужных." },
   agent_empty: { uz: "Agent bo‘sh javob qaytardi. Topshiriqni aniqroq yozib, qayta urinib ko‘ring.", ru: "Агент вернул пустой ответ. Уточните задание и повторите." },
+  voice_consent_required: { uz: "Ovozli kiritish uchun avval rozilik bering.", ru: "Для голосового ввода сначала дайте согласие." },
+  audio_invalid: { uz: "Ovoz yozuvi noto‘g‘ri yoki juda katta. Qisqaroq gapirib, qayta urinib ko‘ring.", ru: "Запись голоса некорректна или слишком большая. Скажите короче и повторите." },
   plan_failed: { uz: "Reja tuzib bo‘lmadi. Maqsadni aniqroq yozib, qayta urinib ko‘ring.", ru: "Не удалось составить план. Опишите цель точнее и повторите." },
   not_found: { uz: "Topilmadi.", ru: "Не найдено." },
   server_error: { uz: "Ichki xatolik.", ru: "Внутренняя ошибка." },

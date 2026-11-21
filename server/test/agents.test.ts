@@ -20,6 +20,7 @@ let app: ReturnType<typeof createApp>;
 let clock: number;
 
 const fake: LlmProvider = {
+  transcribe: async () => ({ text: "", tokensIn: 0, tokensOut: 0 }),
   async complete(p) {
     completeCalls.push({ model: p.model, system: p.system, messages: p.messages, json: p.json });
     if (typeof completeText === "function") completeText();
@@ -63,6 +64,7 @@ async function sse2(cookie: string, message: string) {
 }
 let queue: Array<string | Error>;
 const wfake: LlmProvider = {
+  transcribe: async () => ({ text: "", tokensIn: 0, tokensOut: 0 }),
   async complete(p) {
     completeCalls.push({ model: p.model, system: p.system, messages: p.messages, json: p.json });
     const n = queue.shift();

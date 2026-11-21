@@ -20,6 +20,7 @@ let app: ReturnType<typeof createApp>;
 let clock: number;
 
 const fake: LlmProvider = {
+  transcribe: async () => ({ text: "", tokensIn: 0, tokensOut: 0 }),
   async complete(p) {
     completeCalls.push({ model: p.model, system: p.system, messages: p.messages, json: p.json });
     if (typeof completeText === "function") completeText();

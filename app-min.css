@@ -157,3 +157,16 @@ body.min-on{overflow:hidden}
   .mn.empty .mn-body{padding-bottom:12vh}
 }
 @media (prefers-reduced-motion:reduce){.sb{transition:none}}
+
+/* ---------- ovoz yozish paneli (Gemini uslubida) ---------- */
+.cmp.recording .min-input,.cmp.recording .cmp-row,.cmp.recording .cmp-atts{display:none}
+.rec-bar{display:flex;align-items:center;gap:10px;min-height:52px}
+.rec-bar[hidden]{display:none}
+.rec-mid{flex:1;min-width:0;height:40px;display:flex;align-items:center}
+.rec-wave{width:100%;height:40px;display:block}
+.rec-text{font-size:14px;color:#9fe3b6}
+.rec-time{flex:none;font-size:13px;font-variant-numeric:tabular-nums;color:#a9c3ca;min-width:34px;text-align:right}
+.rec-stop{background:#1b3a4c;color:#e8f4f7}
+.rec-stop:hover:not(:disabled){background:#24495e}
+.rec-send{background:linear-gradient(135deg,#6af08a,#27c07a);color:#052c1f}
+@media (prefers-reduced-motion:reduce){.rec-wave{display:none}}
