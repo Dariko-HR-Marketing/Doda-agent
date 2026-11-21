@@ -21,8 +21,12 @@ class DodaTests(unittest.TestCase):
         os.environ["DODA_DB_PATH"] = str(Path(cls.temp.name) / "db.sqlite3")
         os.environ["DODA_FILES_PATH"] = str(Path(cls.temp.name) / "files")
         os.environ["DODA_SESSION_SECRET"] = "a-unique-test-session-secret-long-enough"
+        os.environ["DODA_OWNER_EMAIL"] = "owner@example.com"
+        os.environ["DODA_OWNER_NAME"] = "Kapitan"
+        os.environ["DODA_ORG_NAME"] = "DARIKO"
+        os.environ["DODA_SMTP_HOST"] = "smtp.example.com"
+        os.environ["DODA_SMTP_FROM"] = "doda@example.com"
         from backend import server
-        os.environ["DODA_PASSWORD_HASH"] = server.password_hash("test password")
         cls.server = server
 
     @classmethod
@@ -30,14 +34,21 @@ class DodaTests(unittest.TestCase):
         cls.temp.cleanup()
 
     def setUp(self):
+        self.server.attempts.clear()
         self.client_context = TestClient(self.server.app, base_url="https://doda.tajriba24.uz")
         self.client = self.client_context.__enter__()
+        with self.server.db() as con:
+            con.execute("DELETE FROM login_codes")
 
     def tearDown(self):
         self.client_context.__exit__(None, None, None)
 
-    def login(self):
-        self.assertEqual(self.client.post("/api/login", json={"password": "test password"}).status_code, 200)
+    def login(self, client=None, email="owner@example.com"):
+        client = client or self.client
+        with patch.object(self.server, "send_login_code") as sender:
+            self.assertEqual(client.post("/api/auth/request", json={"email": email}).status_code, 200)
+        code = sender.call_args.args[1]
+        self.assertEqual(client.post("/api/auth/verify", json={"email": email, "code": code}).status_code, 200)
 
     def test_private_data_and_origin(self):
         self.assertEqual(self.client.get("/api/state").status_code, 401)
@@ -66,7 +77,7 @@ class DodaTests(unittest.TestCase):
         self.assertTrue(self.client.post(f"/api/tasks/{task_id}/action", json={"action": "approve"}).json()["approved"])
         with TestClient(self.server.app, base_url="https://doda.tajriba24.uz") as other:
             self.assertEqual(other.get(f"/api/files/{file_id}").status_code, 401)
-            other.post("/api/login", json={"password": "test password"})
+            self.login(other)
             self.assertEqual(other.get("/api/state").json()["tasks"][0]["id"], task_id)
 
     def test_failed_model_response_does_not_create_fake_answer(self):
@@ -224,6 +235,56 @@ class DodaTests(unittest.TestCase):
             self.assertEqual(self.client.post("/api/chat", json={"text": "Salom", "provider": "openai",
                                                                "model": "unlisted"}).status_code, 400)
         self.assertEqual(len([item for item in seen if item[1] == "/v1/responses"]), 1)
+
+    def test_email_verification_and_organization_access(self):
+        with patch.object(self.server, "send_login_code") as sender:
+            unknown = self.client.post("/api/auth/request", json={"email": "unknown@example.com"})
+            self.assertEqual(unknown.status_code, 200)
+            sender.assert_not_called()
+            valid = self.client.post("/api/auth/request", json={"email": "owner@example.com"})
+            self.assertEqual(valid.json()["message"], unknown.json()["message"])
+        code = sender.call_args.args[1]
+        wrong = "00000000" if code != "00000000" else "11111111"
+        for _ in range(5):
+            self.assertEqual(self.client.post("/api/auth/verify", json={"email": "owner@example.com", "code": wrong}).status_code, 401)
+        self.assertEqual(self.client.post("/api/auth/verify", json={"email": "owner@example.com", "code": code}).status_code, 401)
+
+    def test_expired_code_and_mail_failure_do_not_open_session(self):
+        with patch.object(self.server, "send_login_code") as sender:
+            self.assertEqual(self.client.post("/api/auth/request", json={"email": "owner@example.com"}).status_code, 200)
+        code = sender.call_args.args[1]
+        with self.server.db() as con:
+            con.execute("UPDATE login_codes SET expires_at=0 WHERE email=?", ("owner@example.com",))
+        self.assertEqual(self.client.post("/api/auth/verify", json={"email": "owner@example.com", "code": code}).status_code, 401)
+        with self.server.db() as con:
+            con.execute("DELETE FROM login_codes WHERE email=?", ("owner@example.com",))
+        with patch.object(self.server, "send_login_code", side_effect=self.server.HTTPException(503, "Pochta ishlamadi")):
+            self.assertEqual(self.client.post("/api/auth/request", json={"email": "owner@example.com"}).status_code, 503)
+        with self.server.db() as con:
+            self.assertIsNone(con.execute("SELECT 1 FROM login_codes WHERE email=?", ("owner@example.com",)).fetchone())
+        self.assertEqual(self.client.get("/api/me").status_code, 401)
+        with self.server.db() as con:
+            con.execute("DELETE FROM login_codes WHERE email=?", ("owner@example.com",))
+        self.login()
+        profile = self.client.get("/api/me").json()
+        self.assertEqual(profile["organization"], "DARIKO")
+        self.assertEqual(profile["email"], "owner@example.com")
+        self.assertTrue(profile["verified"])
+        self.assertEqual(self.client.post("/api/me", json={"name": "Hikmatullo"}).status_code, 200)
+        self.assertEqual(self.client.post("/api/members", json={"email": "staff@example.com", "name": "Xodim"}).status_code, 200)
+        with TestClient(self.server.app, base_url="https://doda.tajriba24.uz") as staff:
+            self.login(staff, "staff@example.com")
+            self.assertEqual(staff.get("/api/me").json()["role"], "member")
+            self.assertEqual(staff.get("/api/members").status_code, 403)
+            task_id = self.client.post("/api/tasks", json={"title": "Sinov", "project": "DARIKO",
+                "agent": "Hujjat va sifat agenti", "result": "Xulosa", "deadline": "Ertaga", "files": []}).json()["id"]
+            self.assertEqual(staff.post(f"/api/tasks/{task_id}/action", json={"action": "approve"}).status_code, 403)
+            self.assertEqual(staff.post("/api/import", json={"tasks": [{"id": "tvalid123", "title": "Sinov",
+                "project": "DARIKO", "agent": "Hujjat va sifat agenti", "result": "Xulosa",
+                "deadline": "Ertaga", "step": 0, "files": []}]}).status_code, 403)
+            self.assertEqual(staff.post("/api/logout").status_code, 200)
+            self.assertEqual(staff.get("/api/me").status_code, 401)
+        self.assertEqual(self.client.post("/api/auth/verify", json={"email": "owner@example.com", "code": code}).status_code, 401)
 
 
 if __name__ == "__main__":

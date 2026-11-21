@@ -2,7 +2,6 @@
 
 import base64
 import binascii
-import getpass
 import hashlib
 import hmac
 import json
@@ -10,12 +9,14 @@ import mimetypes
 import os
 import re
 import secrets
+import smtplib
+import ssl
 import sqlite3
-import sys
 import time
 import uuid
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
+from email.message import EmailMessage
 from pathlib import Path
 from urllib.parse import quote
 
@@ -30,6 +31,7 @@ FILES_PATH = Path(os.getenv("DODA_FILES_PATH", "/data/files"))
 ORIGIN = os.getenv("DODA_PUBLIC_ORIGIN", "https://doda.tajriba24.uz").rstrip("/")
 COOKIE = "__Host-doda_session"
 SESSION_SECONDS = 7 * 24 * 3600
+CODE_SECONDS = 10 * 60
 MAX_FILE = 20 * 1024 * 1024
 ALLOWED_AGENTS = ("Hujjat va sifat agenti", "HR jarayonlari agenti", "Marketing va tadqiqot agenti")
 SUPPORTED_FILES = {".pdf", ".doc", ".docx", ".txt", ".md", ".csv", ".xlsx", ".pptx"}
@@ -62,7 +64,23 @@ def init():
           id TEXT PRIMARY KEY, name TEXT NOT NULL, size INTEGER NOT NULL,
           task_id TEXT REFERENCES tasks(id), created_at INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS members (
+          email TEXT PRIMARY KEY, name TEXT NOT NULL, role TEXT NOT NULL,
+          verified_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS login_codes (
+          email TEXT PRIMARY KEY, code_hash TEXT NOT NULL,
+          expires_at INTEGER NOT NULL, sent_at INTEGER NOT NULL, attempts INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS sessions (
+          token_hash TEXT PRIMARY KEY, email TEXT NOT NULL REFERENCES members(email),
+          expires_at INTEGER NOT NULL
+        );
         """)
+        owner = os.getenv("DODA_OWNER_EMAIL", "").strip().lower()
+        if owner:
+            con.execute("INSERT OR IGNORE INTO members(email,name,role) VALUES (?,?,?)",
+                        (owner, os.getenv("DODA_OWNER_NAME", "Kapitan"), "owner"))
 
 
 @asynccontextmanager
@@ -74,24 +92,6 @@ async def lifespan(_app):
 app = FastAPI(title="DODA", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
 
-def password_hash(password):
-    salt = secrets.token_bytes(16)
-    digest = hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1)
-    return f"scrypt:{salt.hex()}:{digest.hex()}"
-
-
-def check_password(password):
-    encoded = os.getenv("DODA_PASSWORD_HASH", "")
-    try:
-        algorithm, salt, expected = encoded.split(":")
-        if algorithm != "scrypt":
-            return False
-        digest = hashlib.scrypt(password.encode(), salt=bytes.fromhex(salt), n=16384, r=8, p=1)
-        return hmac.compare_digest(digest, bytes.fromhex(expected))
-    except (ValueError, binascii.Error):
-        return False
-
-
 def secret_key():
     key = os.getenv("DODA_SESSION_SECRET", "")
     if len(key) < 32:
@@ -99,25 +99,17 @@ def secret_key():
     return key.encode()
 
 
-def signed_session():
-    expiry = str(int(time.time()) + SESSION_SECONDS)
-    nonce = secrets.token_urlsafe(16)
-    payload = f"{expiry}.{nonce}"
-    signature = hmac.new(secret_key(), payload.encode(), hashlib.sha256).hexdigest()
-    return f"{payload}.{signature}"
-
-
 def authenticated(request: Request):
     token = request.cookies.get(COOKIE, "")
-    try:
-        expiry, nonce, signature = token.split(".")
-        payload = f"{expiry}.{nonce}"
-        expected = hmac.new(secret_key(), payload.encode(), hashlib.sha256).hexdigest()
-        if int(expiry) <= time.time() or not hmac.compare_digest(signature, expected):
-            raise ValueError()
-    except (ValueError, HTTPException):
+    if not re.fullmatch(r"[A-Za-z0-9_-]{40,100}", token):
         raise HTTPException(401, "Kirish talab qilinadi")
-    return True
+    digest = hashlib.sha256(token.encode()).hexdigest()
+    with db() as con:
+        row = con.execute("SELECT m.email,m.name,m.role,m.verified_at,s.expires_at FROM sessions s "
+                          "JOIN members m ON m.email=s.email WHERE s.token_hash=?", (digest,)).fetchone()
+    if not row or not row["verified_at"] or row["expires_at"] <= time.time():
+        raise HTTPException(401, "Kirish talab qilinadi")
+    return dict(row)
 
 
 @app.middleware("http")
@@ -130,12 +122,48 @@ async def same_origin(request: Request, call_next):
     return await call_next(request)
 
 
-class Login(BaseModel):
-    password: str = Field(min_length=1, max_length=512)
+class EmailRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
 
 
-@app.post("/api/login")
-def login(body: Login, request: Request, response: Response):
+def normalized_email(email):
+    value = email.strip().lower()
+    if not re.fullmatch(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", value):
+        raise HTTPException(400, "Elektron pochta manzili noto‘g‘ri")
+    return value
+
+
+def send_login_code(email, code):
+    host = os.getenv("DODA_SMTP_HOST")
+    sender = os.getenv("DODA_SMTP_FROM")
+    mode = os.getenv("DODA_SMTP_SECURITY", "starttls")
+    if not host or not sender or mode not in ("starttls", "ssl"):
+        raise HTTPException(503, "Pochta xizmati sozlanmagan")
+    try:
+        port = int(os.getenv("DODA_SMTP_PORT", "465" if mode == "ssl" else "587"))
+    except ValueError:
+        raise HTTPException(503, "Pochta porti noto‘g‘ri sozlangan")
+    message = EmailMessage()
+    message["From"] = sender
+    message["To"] = email
+    message["Subject"] = "DODA kirish kodi"
+    message.set_content(f"DODA kirish kodingiz: {code}\nKod 10 daqiqada tugaydi. Uni hech kimga bermang.")
+    try:
+        client = (smtplib.SMTP_SSL(host, port, timeout=15, context=ssl.create_default_context())
+                  if mode == "ssl" else smtplib.SMTP(host, port, timeout=15))
+        with client as smtp:
+            if mode == "starttls":
+                smtp.starttls(context=ssl.create_default_context())
+            if os.getenv("DODA_SMTP_USER"):
+                smtp.login(os.environ["DODA_SMTP_USER"], os.environ["DODA_SMTP_PASSWORD"])
+            smtp.send_message(message)
+    except (OSError, smtplib.SMTPException, KeyError, ValueError):
+        raise HTTPException(503, "Pochta xizmati vaqtincha ishlamayapti")
+
+
+@app.post("/api/auth/request")
+def request_code(body: EmailRequest, request: Request):
+    email = normalized_email(body.email)
     ip = request.client.host if request.client else "unknown"
     now = time.monotonic()
     bucket = attempts[ip]
@@ -143,23 +171,111 @@ def login(body: Login, request: Request, response: Response):
         bucket.popleft()
     if len(bucket) >= 8:
         raise HTTPException(429, "Ko‘p urinish. 15 daqiqadan keyin qayta sinang")
-    if not check_password(body.password):
-        bucket.append(now)
-        raise HTTPException(401, "Kirish ma’lumotlari noto‘g‘ri")
-    bucket.clear()
-    response.set_cookie(COOKIE, signed_session(), max_age=SESSION_SECONDS,
+    bucket.append(now)
+    if not os.getenv("DODA_SMTP_HOST") or not os.getenv("DODA_SMTP_FROM") or not os.getenv("DODA_OWNER_EMAIL"):
+        raise HTTPException(503, "Pochta va tashkilot egasi sozlanmagan")
+    with db() as con:
+        member = con.execute("SELECT email FROM members WHERE email=?", (email,)).fetchone()
+        previous = con.execute("SELECT sent_at FROM login_codes WHERE email=?", (email,)).fetchone()
+        if member and previous and previous["sent_at"] > time.time() - 60:
+            return {"message": "Agar manzilga ruxsat berilgan bo‘lsa, kirish kodi yuborildi"}
+    if member:
+        code = f"{secrets.randbelow(100000000):08d}"
+        digest = hmac.new(secret_key(), f"{email}:{code}".encode(), hashlib.sha256).hexdigest()
+        with db() as con:
+            con.execute("INSERT OR REPLACE INTO login_codes VALUES (?,?,?,?,?)",
+                        (email, digest, int(time.time()) + CODE_SECONDS, int(time.time()), 0))
+        try:
+            send_login_code(email, code)
+        except HTTPException:
+            with db() as con:
+                con.execute("DELETE FROM login_codes WHERE email=? AND code_hash=?", (email, digest))
+            raise
+    return {"message": "Agar manzilga ruxsat berilgan bo‘lsa, kirish kodi yuborildi"}
+
+
+class VerifyCode(EmailRequest):
+    code: str = Field(pattern=r"^[0-9]{8}$")
+
+
+@app.post("/api/auth/verify")
+def verify_code(body: VerifyCode, response: Response):
+    email = normalized_email(body.email)
+    digest = hmac.new(secret_key(), f"{email}:{body.code}".encode(), hashlib.sha256).hexdigest()
+    with db() as con:
+        row = con.execute("SELECT code_hash,expires_at,attempts FROM login_codes WHERE email=?", (email,)).fetchone()
+        if not row or row["expires_at"] <= time.time() or row["attempts"] >= 5:
+            raise HTTPException(401, "Kod noto‘g‘ri yoki muddati tugagan")
+        if not hmac.compare_digest(digest, row["code_hash"]):
+            con.execute("UPDATE login_codes SET attempts=attempts+1 WHERE email=?", (email,))
+            con.commit()
+            raise HTTPException(401, "Kod noto‘g‘ri yoki muddati tugagan")
+        con.execute("DELETE FROM login_codes WHERE email=?", (email,))
+        con.execute("UPDATE members SET verified_at=? WHERE email=?", (int(time.time()), email))
+        token = secrets.token_urlsafe(48)
+        con.execute("INSERT INTO sessions VALUES (?,?,?)",
+                    (hashlib.sha256(token.encode()).hexdigest(), email, int(time.time()) + SESSION_SECONDS))
+    response.set_cookie(COOKIE, token, max_age=SESSION_SECONDS,
                         secure=True, httponly=True, samesite="strict", path="/")
     return {"ok": True}
 
 
 @app.get("/api/session")
-def session(_=Depends(authenticated)):
-    return {"ok": True}
+def session(member=Depends(authenticated)):
+    return {"ok": True, "email": member["email"]}
 
 
 @app.post("/api/logout")
-def logout(response: Response, _=Depends(authenticated)):
+def logout(request: Request, response: Response, _=Depends(authenticated)):
+    with db() as con:
+        con.execute("DELETE FROM sessions WHERE token_hash=?",
+                    (hashlib.sha256(request.cookies[COOKIE].encode()).hexdigest(),))
     response.delete_cookie(COOKIE, path="/", secure=True, httponly=True, samesite="strict")
+    return {"ok": True}
+
+
+@app.get("/api/me")
+def me(member=Depends(authenticated)):
+    return {"email": member["email"], "name": member["name"], "role": member["role"],
+            "verified": bool(member["verified_at"]), "organization": os.getenv("DODA_ORG_NAME", "DODA tashkiloti")}
+
+
+class ProfileUpdate(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+
+
+@app.post("/api/me")
+def update_me(body: ProfileUpdate, member=Depends(authenticated)):
+    if len(body.name.strip()) < 2:
+        raise HTTPException(400, "Ism kamida 2 belgidan iborat bo‘lsin")
+    with db() as con:
+        con.execute("UPDATE members SET name=? WHERE email=?", (body.name.strip(), member["email"]))
+    return {"ok": True}
+
+
+@app.get("/api/members")
+def members(member=Depends(authenticated)):
+    if member["role"] != "owner":
+        raise HTTPException(403, "Faqat tashkilot egasi")
+    with db() as con:
+        return {"members": [dict(row) for row in con.execute("SELECT email,name,role,verified_at FROM members ORDER BY email")]}
+
+
+class InviteMember(EmailRequest):
+    name: str = Field(min_length=2, max_length=80)
+
+
+@app.post("/api/members")
+def invite_member(body: InviteMember, member=Depends(authenticated)):
+    if member["role"] != "owner":
+        raise HTTPException(403, "Faqat tashkilot egasi")
+    email = normalized_email(body.email)
+    if len(body.name.strip()) < 2:
+        raise HTTPException(400, "Ism kamida 2 belgidan iborat bo‘lsin")
+    with db() as con:
+        if con.execute("SELECT 1 FROM members WHERE email=?", (email,)).fetchone():
+            raise HTTPException(409, "Bu manzil allaqachon qo‘shilgan")
+        con.execute("INSERT INTO members(email,name,role) VALUES (?,?,?)", (email, body.name.strip(), "member"))
     return {"ok": True}
 
 
@@ -194,8 +310,10 @@ class LegacyImport(BaseModel):
 
 
 @app.post("/api/import")
-def import_legacy(body: LegacyImport, _=Depends(authenticated)):
+def import_legacy(body: LegacyImport, member=Depends(authenticated)):
     """Import existing same-origin browser tasks after their file blobs were uploaded."""
+    if member["role"] != "owner":
+        raise HTTPException(403, "Faqat tashkilot egasi")
     ids = [task.id for task in body.tasks]
     if len(ids) != len(set(ids)) or any(not re.fullmatch(r"[A-Za-z0-9_-]{2,80}", task_id) or task_id == "sample" for task_id in ids):
         raise HTTPException(400, "Topshiriq identifikatorlari noto‘g‘ri")
@@ -259,7 +377,9 @@ class TaskAction(BaseModel):
 
 
 @app.post("/api/tasks/{task_id}/action")
-def task_action(task_id: str, body: TaskAction, _=Depends(authenticated)):
+def task_action(task_id: str, body: TaskAction, member=Depends(authenticated)):
+    if body.action == "approve" and member["role"] != "owner":
+        raise HTTPException(403, "Yakuniy qabul faqat tashkilot egasiga tegishli")
     with db() as con:
         row = con.execute("SELECT data FROM tasks WHERE id=?", (task_id,)).fetchone()
         if not row:
@@ -601,7 +721,4 @@ async def chat(body: ChatInput, _=Depends(authenticated)):
 
 
 if __name__ == "__main__":
-    if sys.argv[1:] == ["hash-password"]:
-        print(password_hash(getpass.getpass("DODA login paroli: ")))
-    else:
-        print("Run: uvicorn backend.server:app --host 0.0.0.0 --port 8000")
+    print("Run: uvicorn backend.server:app --host 0.0.0.0 --port 8000")
