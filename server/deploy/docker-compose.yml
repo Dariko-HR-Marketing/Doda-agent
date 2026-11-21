@@ -1,6 +1,7 @@
 # Faqat DODA server. Boshqa konteynerlarga tegmaydi.
 # Caddy (vps-web-1) ishlayotgan Docker tarmog'iga ulanadi; tashqariga port ochilmaydi.
 # Ishga tushirish: CADDY_NETWORK=<tarmoq nomi> docker compose up -d --build
+name: doda
 services:
   doda-server:
     build:

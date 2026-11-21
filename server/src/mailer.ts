@@ -59,3 +59,14 @@ export function createMailer(config: Config): Mailer {
   if (config.isProd) throw new Error("Productionda SMTP_HOST majburiy (xatlar tokenni oshkor qilmasligi uchun)");
   return new ConsoleMailer();
 }
+
+/** Pochta xizmati ishlamasa ham so'rov yiqilmasin: xato logga yoziladi (token/manzilsiz), false qaytadi */
+export async function trySend(mailer: Mailer, mail: Mail): Promise<boolean> {
+  try {
+    await mailer.send(mail);
+    return true;
+  } catch (e) {
+    console.error("[mail] yuborib bo'lmadi:", e instanceof Error ? e.message : e);
+    return false;
+  }
+}

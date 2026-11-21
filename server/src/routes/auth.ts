@@ -8,6 +8,7 @@ import { t } from "../i18n.js";
 import { createSession, destroySession, requireAuth } from "../session.js";
 import { currentConsents } from "../consents.js";
 import { randomUUID } from "node:crypto";
+import { trySend } from "../mailer.js";
 
 export const authRoutes = new Hono<Env>();
 
@@ -62,8 +63,9 @@ authRoutes.post("/register", async (c) => {
   const generic = { status: "check_email", message: t("check_email", locale) };
 
   if (existing) {
-    // Email mavjudligini oshkor qilmaymiz: bir xil javob
-    await mailer.send({
+    // Email mavjudligini oshkor qilmaymiz: bir xil javob va bir xil sarflangan vaqt
+    await burnPasswordTime(password);
+    await trySend(mailer, {
       to: email,
       subject: locale === "ru" ? "DODA: аккаунт уже существует" : "DODA: akkaunt allaqachon mavjud",
       text:
@@ -107,7 +109,7 @@ authRoutes.post("/register", async (c) => {
 
   audit(c, id, "register", { legal: config.LEGAL_VERSION });
   const link = `${config.APP_ORIGIN}/#/verify?token=${token}`;
-  await mailer.send({
+  await trySend(mailer, {
     to: email,
     subject: locale === "ru" ? "DODA: подтвердите почту" : "DODA: pochtangizni tasdiqlang",
     text:
@@ -148,7 +150,9 @@ authRoutes.post("/login", async (c) => {
   const body = loginSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return fail(c, 400, "invalid_input");
   const email = normEmail(body.data.email);
-  if (!limiter.take(`login-email:${email}`, 8, 10 * MIN)) return fail(c, 429, "too_many_requests");
+  // Egasini qulflab qo'ymaslik uchun: asosiy cheklov email+IP bo'yicha, umumiy cheklov yuqoriroq
+  if (!limiter.take(`login-email-ip:${email}:${ip}`, 8, 10 * MIN)) return fail(c, 429, "too_many_requests");
+  if (!limiter.take(`login-email-all:${email}`, 60, HOUR)) return fail(c, 429, "too_many_requests");
 
   const user = db
     .prepare("SELECT id, email, password_hash, locale, email_verified_at FROM users WHERE email = ?")
@@ -179,4 +183,91 @@ authRoutes.post("/logout", async (c) => {
 authRoutes.get("/me", requireAuth, (c) => {
   const user = c.get("user")!;
   return c.json({ user, consents: currentConsents(c.get("deps").db, user.id) });
+});
+
+const emailOnly = z.object({ email: z.email().max(254) });
+const resetSchema = z.object({ token: z.string().min(10).max(200), password: z.string().min(1).max(128) });
+
+function mailTexts(locale: "uz" | "ru", kind: "verify" | "reset", link: string): { subject: string; text: string } {
+  if (kind === "verify") {
+    return locale === "ru"
+      ? { subject: "DODA: подтвердите почту", text: `Подтвердите адрес по ссылке (действует 24 часа):\n${link}` }
+      : { subject: "DODA: pochtangizni tasdiqlang", text: `Pochtangizni quyidagi havola orqali tasdiqlang (24 soat amal qiladi):\n${link}` };
+  }
+  return locale === "ru"
+    ? { subject: "DODA: восстановление пароля", text: `Задайте новый пароль по ссылке (действует 1 час). Если вы не запрашивали это, проигнорируйте письмо.\n${link}` }
+    : { subject: "DODA: parolni tiklash", text: `Yangi parol o'rnatish uchun havola (1 soat amal qiladi). Agar bu so'rovni siz yubormagan bo'lsangiz, xatni e'tiborsiz qoldiring.\n${link}` };
+}
+
+/** Bir xil javob: email mavjudligi oshkor bo'lmaydi */
+authRoutes.post("/resend-verification", async (c) => {
+  const { db, config, mailer, limiter, now } = c.get("deps");
+  if (!limiter.take(`resend-ip:${c.get("ip")}`, 10, HOUR)) return fail(c, 429, "too_many_requests");
+  const body = emailOnly.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return fail(c, 400, "invalid_input");
+  const email = normEmail(body.data.email);
+  const generic = { status: "check_email", message: t("check_email", c.get("locale")) };
+  if (!limiter.take(`resend-email:${email}`, 3, HOUR)) return c.json(generic, 202);
+
+  const user = db
+    .prepare("SELECT id, locale FROM users WHERE email = ? AND email_verified_at IS NULL AND password_hash IS NOT NULL")
+    .get(email) as { id: string; locale: "uz" | "ru" } | undefined;
+  if (user) {
+    const token = newToken();
+    db.transaction(() => {
+      db.prepare("DELETE FROM email_tokens WHERE user_id = ? AND purpose = 'verify_email'").run(user.id);
+      db.prepare("INSERT INTO email_tokens (token_hash, user_id, purpose, expires_at) VALUES (?,?,?,?)").run(sha256(token), user.id, "verify_email", now() + 24 * HOUR);
+    })();
+    await trySend(mailer, { to: email, ...mailTexts(user.locale, "verify", `${config.APP_ORIGIN}/#/verify?token=${token}`) });
+  }
+  return c.json(generic, 202);
+});
+
+authRoutes.post("/forgot", async (c) => {
+  const { db, config, mailer, limiter, now } = c.get("deps");
+  if (!limiter.take(`forgot-ip:${c.get("ip")}`, 10, HOUR)) return fail(c, 429, "too_many_requests");
+  const body = emailOnly.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return fail(c, 400, "invalid_input");
+  const email = normEmail(body.data.email);
+  const generic = { status: "check_email", message: t("check_email", c.get("locale")) };
+  if (!limiter.take(`forgot-email:${email}`, 3, HOUR)) return c.json(generic, 202);
+
+  const user = db.prepare("SELECT id, locale FROM users WHERE email = ? AND email_verified_at IS NOT NULL").get(email) as
+    | { id: string; locale: "uz" | "ru" }
+    | undefined;
+  if (user) {
+    const token = newToken();
+    db.transaction(() => {
+      db.prepare("DELETE FROM email_tokens WHERE user_id = ? AND purpose = 'reset_password'").run(user.id);
+      db.prepare("INSERT INTO email_tokens (token_hash, user_id, purpose, expires_at) VALUES (?,?,?,?)").run(sha256(token), user.id, "reset_password", now() + HOUR);
+    })();
+    audit(c, user.id, "forgot_requested");
+    await trySend(mailer, { to: email, ...mailTexts(user.locale, "reset", `${config.APP_ORIGIN}/#/reset?token=${token}`) });
+  }
+  return c.json(generic, 202);
+});
+
+authRoutes.post("/reset", async (c) => {
+  const { db, limiter, now } = c.get("deps");
+  if (!limiter.take(`reset-ip:${c.get("ip")}`, 20, HOUR)) return fail(c, 429, "too_many_requests");
+  const body = resetSchema.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return fail(c, 400, "invalid_input");
+  if (body.data.password.length < 10) return fail(c, 400, "weak_password");
+
+  const t0 = now();
+  const tokenHash = sha256(body.data.token);
+  const row = db
+    .prepare("SELECT user_id FROM email_tokens WHERE token_hash = ? AND purpose = 'reset_password' AND used_at IS NULL AND expires_at > ?")
+    .get(tokenHash, t0) as { user_id: string } | undefined;
+  if (!row) return fail(c, 400, "invalid_token");
+
+  const hash = await hashPassword(body.data.password);
+  db.transaction(() => {
+    db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hash, row.user_id);
+    db.prepare("UPDATE email_tokens SET used_at = ? WHERE token_hash = ?").run(t0, tokenHash);
+    db.prepare("DELETE FROM email_tokens WHERE user_id = ? AND purpose = 'reset_password' AND used_at IS NULL").run(row.user_id);
+    db.prepare("DELETE FROM sessions WHERE user_id = ?").run(row.user_id); // barcha qurilmalardan chiqarish
+  })();
+  audit(c, row.user_id, "password_reset");
+  return c.json({ status: "reset" });
 });

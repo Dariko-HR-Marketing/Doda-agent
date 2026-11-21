@@ -22,6 +22,10 @@
       offlineTitle: 'Server bilan aloqa yo‘q', offlineText: 'Hisob tizimi hozir ishlamayapti. Namuna rejimida davom etishingiz mumkin: ma’lumotlar faqat shu qurilmada qoladi.', demo: 'Namuna rejimida davom etish', retry: 'Qayta urinish',
       account: 'Akkaunt', voiceConsent: 'Ovoz yozuvlarini qayta ishlashga rozilik', logout: 'Chiqish', close: 'Yopish',
       deleteTitle: 'Akkauntni o‘chirish', deleteText: 'Akkaunt va unga bog‘liq barcha ma’lumot butunlay o‘chiriladi. Buni qaytarib bo‘lmaydi.', deleteAck: 'Tushundim, o‘chirilsin', deleteBtn: 'Akkauntni o‘chirish',
+      forgot: 'Parolni unutdingizmi?', forgotTitle: 'Parolni tiklash', forgotText: 'Pochtangizni kiriting: tiklash havolasini yuboramiz.', sendLink: 'Havola yuborish',
+      sentResetText: 'Agar bu pochta ro‘yxatdan o‘tgan bo‘lsa, tiklash havolasi yuborildi. Havola 1 soat amal qiladi. Xat kelmasa, “Spam” papkasini ko‘ring.',
+      resend: 'Xatni qayta yuborish', resent: 'Xat qayta yuborildi. “Spam” papkasini ham ko‘ring.', notVerifiedHint: 'Xat kelmadimi?',
+      resetTitle: 'Yangi parol', resetBtn: 'Parolni saqlash', resetDoneTitle: 'Parol yangilandi', resetDoneText: 'Xavfsizlik uchun barcha qurilmalardan chiqarildingiz. Yangi parol bilan kiring.',
       needConsent: 'Davom etish uchun uchta majburiy rozilikni belgilang.',
       googleNew: 'Yangi foydalanuvchi bo‘lsangiz, “Ro‘yxatdan o‘tish” bo‘limida rozilik belgilab, Google tugmasini bosing.',
       network: 'Aloqa xatosi. Internetni tekshirib, qayta urinib ko‘ring.', saving: 'Yuborilmoqda…',
@@ -45,6 +49,10 @@
       offlineTitle: 'Нет связи с сервером', offlineText: 'Система аккаунтов сейчас недоступна. Можно продолжить в демо-режиме: данные останутся только на этом устройстве.', demo: 'Продолжить в демо-режиме', retry: 'Повторить',
       account: 'Аккаунт', voiceConsent: 'Согласие на обработку голосовых записей', logout: 'Выйти', close: 'Закрыть',
       deleteTitle: 'Удаление аккаунта', deleteText: 'Аккаунт и все связанные данные будут удалены безвозвратно. Это действие нельзя отменить.', deleteAck: 'Понимаю, удалить', deleteBtn: 'Удалить аккаунт',
+      forgot: 'Забыли пароль?', forgotTitle: 'Восстановление пароля', forgotText: 'Введите почту: мы отправим ссылку для восстановления.', sendLink: 'Отправить ссылку',
+      sentResetText: 'Если эта почта зарегистрирована, ссылка для восстановления отправлена. Она действует 1 час. Если письма нет, проверьте папку «Спам».',
+      resend: 'Отправить письмо повторно', resent: 'Письмо отправлено повторно. Проверьте и папку «Спам».', notVerifiedHint: 'Письмо не пришло?',
+      resetTitle: 'Новый пароль', resetBtn: 'Сохранить пароль', resetDoneTitle: 'Пароль обновлён', resetDoneText: 'В целях безопасности вы вышли со всех устройств. Войдите с новым паролем.',
       needConsent: 'Для продолжения отметьте три обязательных согласия.',
       googleNew: 'Если вы новый пользователь, отметьте согласия на вкладке «Регистрация» и нажмите кнопку Google.',
       network: 'Ошибка связи. Проверьте интернет и повторите попытку.', saving: 'Отправка…',
@@ -99,6 +107,7 @@
   let busy = false;
   let user = null;
   let draft = { email: '' };
+  let resetToken = null;
 
   function clearHash() {
     history.replaceState(null, '', location.pathname + location.search);
@@ -176,7 +185,9 @@
 
   function noticeEl() {
     if (!notice) return h('div', { class: 'auth-notice', role: 'status', 'aria-live': 'polite' });
-    return h('div', { class: 'auth-notice ' + notice.kind, role: notice.kind === 'error' ? 'alert' : 'status', 'aria-live': 'polite' }, notice.text);
+    return h('div', { class: 'auth-notice ' + notice.kind, role: notice.kind === 'error' ? 'alert' : 'status', 'aria-live': 'polite' },
+      notice.text,
+      notice.action ? h('button', { type: 'button', class: 'auth-linkbtn', onclick: notice.action.onclick }, notice.action.label) : null);
   }
 
   function field(id, label, attrs) {
@@ -231,6 +242,7 @@
     const form = h('form', { class: 'auth-form', novalidate: false, onsubmit: onLogin },
       field('l-email', tr('email'), { type: 'email', required: true, autocomplete: 'email', inputmode: 'email', maxlength: '254', value: draft.email }),
       passwordField('l-pass', 'current-password', false),
+      h('button', { type: 'button', class: 'auth-linkbtn', onclick: () => { notice = null; showAuth('forgot'); } }, tr('forgot')),
       noticeEl(),
       h('button', { type: 'submit', class: 'auth-primary', disabled: busy }, tr('loginBtn')),
       h('div', { class: 'auth-or' }, h('span', {}, tr('or'))),
@@ -268,6 +280,36 @@
     return h('div', { class: 'auth-tabs', role: 'tablist' }, tab('login', tr('login')), tab('register', tr('register')));
   }
 
+  function forgotView() {
+    const form = h('form', { class: 'auth-form', onsubmit: onForgot },
+      h('h2', { class: 'auth-h2' }, tr('forgotTitle')),
+      h('p', { class: 'auth-p' }, tr('forgotText')),
+      field('f-email', tr('email'), { type: 'email', required: true, autocomplete: 'email', inputmode: 'email', maxlength: '254', value: draft.email }),
+      noticeEl(),
+      h('button', { type: 'submit', class: 'auth-primary' }, tr('sendLink')),
+      h('button', { type: 'button', class: 'auth-secondary', onclick: () => { notice = null; showAuth('login'); } }, tr('back')),
+    );
+    return [...head('forgotTitle'), form];
+  }
+
+  function resetView() {
+    const form = h('form', { class: 'auth-form', onsubmit: onReset },
+      h('h2', { class: 'auth-h2' }, tr('resetTitle')),
+      passwordField('n-pass', 'new-password', true),
+      noticeEl(),
+      h('button', { type: 'submit', class: 'auth-primary' }, tr('resetBtn')),
+    );
+    return [...head('resetTitle'), form];
+  }
+
+  function sentView(textKey) {
+    return [...head('sentTitle'), h('div', { class: 'auth-message' },
+      h('h2', {}, tr('sentTitle')), h('p', {}, tr(textKey)), noticeEl(),
+      h('div', { class: 'auth-actions' },
+        textKey === 'sentText' ? h('button', { type: 'button', class: 'auth-secondary', onclick: (e) => resend(e.currentTarget) }, tr('resend')) : null,
+        h('button', { class: 'auth-primary', onclick: () => showAuth('login', { notice: null }) }, tr('back'))))];
+  }
+
   function messageView(titleKey, textKey, actions) {
     return [...head(titleKey), h('div', { class: 'auth-message' }, h('h2', {}, tr(titleKey)), h('p', {}, tr(textKey)), actions)];
   }
@@ -276,7 +318,11 @@
     ensureRoot();
     let body;
     if (view === 'register') body = registerView();
-    else if (view === 'sent') body = messageView('sentTitle', 'sentText', h('button', { class: 'auth-primary', onclick: () => showAuth('login', { notice: null }) }, tr('back')));
+    else if (view === 'sent') body = sentView('sentText');
+    else if (view === 'sentReset') body = sentView('sentResetText');
+    else if (view === 'forgot') body = forgotView();
+    else if (view === 'reset') body = resetView();
+    else if (view === 'resetDone') body = messageView('resetDoneTitle', 'resetDoneText', h('button', { class: 'auth-primary', onclick: () => showAuth('login', { notice: null }) }, tr('loginBtn')));
     else if (view === 'verifying') body = [...head('verifying'), h('div', { class: 'auth-message' }, h('p', { role: 'status' }, tr('verifying')))];
     else if (view === 'verified') body = messageView('verifiedTitle', 'verifiedText', h('button', { class: 'auth-primary', onclick: () => showAuth('login', { notice: null }) }, tr('loginBtn')));
     else if (view === 'offline') body = messageView('offlineTitle', 'offlineText', h('div', { class: 'auth-actions' },
@@ -289,7 +335,7 @@
     const first = card.querySelector('input:not([type=checkbox]), .auth-primary');
     // Telefonda avtofokus klaviaturani o'zi ochib yuboradi, shuning uchun faqat sichqonchali qurilmalarda
     const fine = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
-    if (fine && first && ['login', 'register'].includes(view)) first.focus({ preventScroll: true });
+    if (fine && first && ['login', 'register', 'forgot', 'reset'].includes(view)) first.focus({ preventScroll: true });
   }
 
   /* ---------- harakatlar ---------- */
@@ -302,7 +348,8 @@
     const r = await api('/api/auth/login', { method: 'POST', body: { email: draft.email, password: form.querySelector('#l-pass').value } });
     setBusy(false);
     if (r.status === 200) { onLoggedIn(r.data.user); return; }
-    setNotice({ kind: 'error', text: errText(r) });
+    const notVerified = r.data?.error?.code === 'email_not_verified';
+    setNotice({ kind: 'error', text: errText(r), action: notVerified ? { label: tr('resend'), onclick: () => resend(null) } : undefined });
   }
 
   async function onRegister(e) {
@@ -317,6 +364,36 @@
     const r = await api('/api/auth/register', { method: 'POST', body: { email: draft.email, password, locale: lang, consents: c } });
     setBusy(false);
     if (r.status === 202) { showAuth('sent'); return; }
+    setNotice({ kind: 'error', text: errText(r) });
+  }
+
+  async function resend(btn) {
+    if (!draft.email) { showAuth('login'); return; }
+    if (btn) btn.disabled = true;
+    const r = await api('/api/auth/resend-verification', { method: 'POST', body: { email: draft.email } });
+    if (btn) btn.disabled = false;
+    setNotice(r.status === 202 ? { kind: 'ok', text: tr('resent') } : { kind: 'error', text: errText(r) });
+  }
+
+  async function onForgot(e) {
+    e.preventDefault();
+    if (busy) return;
+    const form = e.currentTarget;
+    draft.email = form.querySelector('#f-email').value.trim();
+    setBusy(true); setNotice(null);
+    const r = await api('/api/auth/forgot', { method: 'POST', body: { email: draft.email } });
+    setBusy(false);
+    if (r.status === 202) { showAuth('sentReset', { notice: null }); return; }
+    setNotice({ kind: 'error', text: errText(r) });
+  }
+
+  async function onReset(e) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setNotice(null);
+    const r = await api('/api/auth/reset', { method: 'POST', body: { token: resetToken, password: e.currentTarget.querySelector('#n-pass').value } });
+    setBusy(false);
+    if (r.status === 200) { resetToken = null; showAuth('resetDone', { notice: null }); return; }
     setNotice({ kind: 'error', text: errText(r) });
   }
 
@@ -401,6 +478,13 @@
     const { path, params } = parseHash();
     let startNotice = null;
     let startView = 'login';
+
+    if (path === '/reset' && params.get('token')) {
+      resetToken = params.get('token');
+      clearHash();
+      showAuth('reset', { notice: null });
+      return;
+    }
 
     if (path === '/verify' && params.get('token')) {
       lockApp(true); showAuth('verifying');

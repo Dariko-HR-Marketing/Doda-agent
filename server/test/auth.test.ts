@@ -237,3 +237,103 @@ describe("akkaunt", () => {
     expect(JSON.stringify(audits)).not.toContain("example.com");
   });
 });
+
+describe("pochta xizmati ishlamasa", () => {
+  it("ro'yxatdan o'tish 500 bermaydi, foydalanuvchi qayta yuborish orqali tasdiqlay oladi", async () => {
+    const failing = { send: async () => { throw new Error("smtp down"); } };
+    app = createApp({ config: loadConfig({ NODE_ENV: "test" }), db, mailer: failing, now: () => clock, limiter: new RateLimiter(() => clock) });
+    const res = await post("/api/auth/register", GOOD);
+    expect(res.status).toBe(202);
+    expect(db.prepare("SELECT COUNT(*) c FROM users").get()).toEqual({ c: 1 });
+  });
+});
+
+describe("tasdiqlash xatini qayta yuborish", () => {
+  it("yangi token yuboriladi, eskisi yaroqsiz bo'ladi", async () => {
+    await post("/api/auth/register", GOOD);
+    const oldToken = tokenFromMail();
+    const res = await post("/api/auth/resend-verification", { email: GOOD.email });
+    expect(res.status).toBe(202);
+    expect(mailer.outbox).toHaveLength(2);
+    const fresh = tokenFromMail();
+    expect(fresh).not.toBe(oldToken);
+    expect((await post("/api/auth/verify-email", { token: oldToken })).status).toBe(400);
+    expect((await post("/api/auth/verify-email", { token: fresh })).status).toBe(200);
+  });
+
+  it("tasdiqlangan yoki noma'lum email uchun xat ketmaydi, javob bir xil", async () => {
+    await registerAndVerify();
+    const before = mailer.outbox.length;
+    const a = await post("/api/auth/resend-verification", { email: GOOD.email });
+    const b = await post("/api/auth/resend-verification", { email: "nobody@example.com" });
+    expect(a.status).toBe(202);
+    expect(b.status).toBe(202);
+    expect(await a.json()).toEqual(await b.json());
+    expect(mailer.outbox.length).toBe(before);
+  });
+
+  it("bir email'ga soatiga 3 ta xat", async () => {
+    await post("/api/auth/register", GOOD);
+    for (let i = 0; i < 5; i++) await post("/api/auth/resend-verification", { email: GOOD.email });
+    expect(mailer.outbox).toHaveLength(1 + 3);
+  });
+});
+
+describe("parolni tiklash", () => {
+  it("to'liq oqim: so'rov, yangi parol, eski parol ishlamaydi, sessiyalar bekor qilinadi", async () => {
+    await registerAndVerify();
+    const cookie = cookieOf(await login());
+    expect((await app.request("/api/auth/me", { headers: { cookie } })).status).toBe(200);
+
+    expect((await post("/api/auth/forgot", { email: GOOD.email })).status).toBe(202);
+    const token = tokenFromMail();
+    expect(mailer.outbox.at(-1)!.text).toContain("#/reset?token=");
+
+    const res = await post("/api/auth/reset", { token, password: "brand-new-password-1" });
+    expect(res.status).toBe(200);
+    expect((await app.request("/api/auth/me", { headers: { cookie } })).status).toBe(401);
+    expect((await login()).status).toBe(401);
+    const ok = await post("/api/auth/login", { email: "test@example.com", password: "brand-new-password-1" });
+    expect(ok.status).toBe(200);
+  });
+
+  it("token bir martalik, kuchsiz parol rad etiladi, muddati 1 soat", async () => {
+    await registerAndVerify();
+    await post("/api/auth/forgot", { email: GOOD.email });
+    const token = tokenFromMail();
+    expect((await post("/api/auth/reset", { token, password: "short" })).status).toBe(400);
+    expect((await post("/api/auth/reset", { token, password: "brand-new-password-1" })).status).toBe(200);
+    expect((await post("/api/auth/reset", { token, password: "another-password-22" })).status).toBe(400);
+
+    await post("/api/auth/forgot", { email: GOOD.email });
+    const t2 = tokenFromMail();
+    clock += 61 * 60 * 1000;
+    expect((await post("/api/auth/reset", { token: t2, password: "another-password-22" })).status).toBe(400);
+  });
+
+  it("tasdiqlanmagan yoki noma'lum email uchun xat ketmaydi", async () => {
+    await post("/api/auth/register", GOOD);
+    const before = mailer.outbox.length;
+    const a = await post("/api/auth/forgot", { email: GOOD.email });
+    const b = await post("/api/auth/forgot", { email: "nobody@example.com" });
+    expect(await a.json()).toEqual(await b.json());
+    expect(mailer.outbox.length).toBe(before);
+  });
+});
+
+describe("himoya", () => {
+  it("katta so'rov tanasi rad etiladi", async () => {
+    const res = await post("/api/auth/login", { email: "a@b.co", password: "x".repeat(20_000) });
+    expect(res.status).toBe(400);
+  });
+
+  it("birovning emailiga urinishlar boshqa IP'dan kirishni bloklamaydi", async () => {
+    setup({ TRUST_PROXY: "true" });
+    await registerAndVerify();
+    const attacker = { "x-forwarded-for": "6.6.6.6" };
+    for (let i = 0; i < 8; i++) await post("/api/auth/login", { email: "test@example.com", password: "wrong-password-1" }, attacker);
+    expect((await post("/api/auth/login", { email: "test@example.com", password: "wrong-password-1" }, attacker)).status).toBe(429);
+    const owner = await post("/api/auth/login", { email: "test@example.com", password: GOOD.password }, { "x-forwarded-for": "7.7.7.7" });
+    expect(owner.status).toBe(200);
+  });
+});

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { pickLocale } from "./i18n.js";
 import { clientIp, fail, type Deps, type Env, type ResolvedDeps } from "./http.js";
 import { RateLimiter } from "./rateLimit.js";
@@ -27,6 +28,8 @@ export function createApp(input: Deps): Hono<Env> {
     c.header("X-Frame-Options", "DENY");
     if (config.isProd) c.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   });
+
+  app.use("/api/*", bodyLimit({ maxSize: 16 * 1024, onError: (c) => fail(c as never, 400, "invalid_input") }));
 
   // CORS: faqat bizning frontend manzilimiz
   app.use("/api/*", async (c, next) => {
