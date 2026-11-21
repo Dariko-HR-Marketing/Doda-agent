@@ -13,7 +13,7 @@
       today: 'Bugun', yesterday: 'Kecha', week: 'Oxirgi 7 kun', older: 'Oldinroq', rename: 'Nomini o‘zgartirish', del: 'O‘chirish', delSure: 'Aniq o‘chiraman', more: 'Amallar',
       account: 'Akkaunt', language: 'Til', logout: 'Chiqish', sbOpen: 'Panelni ochish', sbClose: 'Panelni yopish',
       morning: 'Xayrli tong', day: 'Xayrli kun', evening: 'Xayrli kech', night: 'Xayrli tun', ask: 'Nima haqida gaplashamiz?',
-      listening: 'Eshityapman… gapiring', recBusy: 'Matnga aylantirilmoqda…', recDiscard: 'Yozuvni bekor qilish', recStop: 'To‘xtatish: matnni ko‘rib, tahrirlash', recSend: 'To‘xtatish va yuborish', e_short: 'Yozuv juda qisqa. Qayta urinib ko‘ring.', e_stt: 'Ovozni matnga aylantirib bo‘lmadi. Qayta urinib ko‘ring.', sending: 'Yuborilmoqda…', cancel: 'Bekor qilish',
+      listening: 'Eshityapman… gapiring', recBusy: 'Matnga aylantirilmoqda…', recDiscard: 'Yozuvni bekor qilish', recStop: 'To‘xtatish: matnni ko‘rib, tahrirlash', recSend: 'To‘xtatish va yuborish', e_old: 'server yangilanmagan', e_short: 'Yozuv juda qisqa. Qayta urinib ko‘ring.', e_stt: 'Ovozni matnga aylantirib bo‘lmadi. Qayta urinib ko‘ring.', sending: 'Yuborilmoqda…', cancel: 'Bekor qilish',
       netErr: 'Aloqa xatosi. Qayta urinib ko‘ring.', remembered: 'Eslab qoldim: ', limit: 'Oylik limit',
       attach: 'Fayl biriktirish', attachHint: 'Matnli fayllar: .txt .md .csv .json', removeAtt: 'Olib tashlash', file: 'Fayl',
       attOnly: 'Shu faylni ko‘rib chiqing.', fileBig: 'Fayl juda katta (har biri 12 000 belgigacha, jami 16 000).', binary: 'Hozircha faqat matnli fayllar qo‘llanadi.', tooMany: 'Ko‘pi bilan 3 ta fayl.',
@@ -32,7 +32,7 @@
       today: 'Сегодня', yesterday: 'Вчера', week: 'Последние 7 дней', older: 'Ранее', rename: 'Переименовать', del: 'Удалить', delSure: 'Точно удалить', more: 'Действия',
       account: 'Аккаунт', language: 'Язык', logout: 'Выйти', sbOpen: 'Открыть панель', sbClose: 'Закрыть панель',
       morning: 'Доброе утро', day: 'Добрый день', evening: 'Добрый вечер', night: 'Доброй ночи', ask: 'О чём поговорим?',
-      listening: 'Слушаю… говорите', recBusy: 'Преобразую в текст…', recDiscard: 'Отменить запись', recStop: 'Остановить: посмотреть и править текст', recSend: 'Остановить и отправить', e_short: 'Запись слишком короткая. Повторите.', e_stt: 'Не удалось преобразовать речь в текст. Повторите.', sending: 'Отправка…', cancel: 'Отмена',
+      listening: 'Слушаю… говорите', recBusy: 'Преобразую в текст…', recDiscard: 'Отменить запись', recStop: 'Остановить: посмотреть и править текст', recSend: 'Остановить и отправить', e_old: 'сервер не обновлён', e_short: 'Запись слишком короткая. Повторите.', e_stt: 'Не удалось преобразовать речь в текст. Повторите.', sending: 'Отправка…', cancel: 'Отмена',
       netErr: 'Ошибка связи. Повторите попытку.', remembered: 'Запомнил: ', limit: 'Месячный лимит',
       attach: 'Прикрепить файл', attachHint: 'Текстовые файлы: .txt .md .csv .json', removeAtt: 'Убрать', file: 'Файл',
       attOnly: 'Посмотрите этот файл.', fileBig: 'Файл слишком большой (до 12 000 символов каждый, всего 16 000).', binary: 'Пока поддерживаются только текстовые файлы.', tooMany: 'Не более 3 файлов.',
@@ -814,7 +814,7 @@
     if (!root) return;
     if (res.status === 403) { voiceAllowed = false; ui.consent.hidden = false; renderConsent(); return; }
     const text = res.status === 200 && res.data && typeof res.data.text === 'string' ? res.data.text.trim() : null;
-    if (text === null) { setLive((res.data && res.data.error && res.data.error.message) || tr('e_stt')); setTimeout(() => setLive(''), 6000); return; }
+    if (text === null) { setLive((res.data && res.data.error && res.data.error.message) || (tr('e_stt') + ' (' + (res.status === 404 ? tr('e_old') : 'status ' + res.status) + ')')); setTimeout(() => setLive(''), 8000); return; }
     if (!text) { setLive(tr('e_no_speech')); setTimeout(() => setLive(''), 3500); return; }
     ui.input.value = [r.base, text].filter(Boolean).join(' ');
     autoGrow(); updateSend();
