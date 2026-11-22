@@ -20,6 +20,7 @@
       request: 'Topshiriq', requestPh: 'Agentga nima qilish kerak?', taskLink: 'Vazifaga bog‘lash', noTask: 'Bog‘lamaslik', fast: 'Tez', smart: 'Aqlli', run: 'Topshirish', running: 'Agent ishlayapti…',
       history: 'Natijalar', noRuns: 'Hali natija yo‘q.', copy: 'Nusxa', copied: 'Nusxalandi', ok: 'DODA tekshirdi: yaxshi', needs: 'DODA: yaxshilash kerak', unchecked: 'Tekshirilmadi', saveLesson: 'Saboq qilib saqlash', lessonSaved: 'Xotiraga yozildi',
       // todo
+      dueLbl: 'Muddat', repNone: 'Takrorlanmaydi', repDaily: 'Har kuni', repWeekly: 'Har hafta', repMonthly: 'Har oy', dToday: 'Bugun', dLate: 'Kechikdi', repeatLbl: 'Takrorlash',
       todoPh: 'Yangi vazifa…', addBtn: 'Qo‘shish', clearDone: 'Bajarilganlarni tozalash', todoEmpty: 'Ro‘yxat bo‘sh.', done: 'bajarilgan', priority: 'Muhim',
       // memory
       memPh: 'Nimani eslab qolsin?', fact: 'Fakt', lesson: 'Saboq', preference: 'Afzallik', memEmpty: 'Xotira bo‘sh. Agent bu yerdagi yozuvlarni har topshiriqda hisobga oladi.', dodaMemD: 'DODA suhbatlardan va sizdan faktlarni eslab qoladi. Hammasi shu yerda ko‘rinadi.',
@@ -38,6 +39,7 @@
       duties: 'Задачи', tools: 'Инструменты', situations: 'Ситуации', all: 'Все', nothing: 'Ничего', selected: 'выбрано', soon: 'скоро', approval: 'с подтверждением', addOwn: 'Своё…', recommended: 'Рекомендация DODA',
       request: 'Задание', requestPh: 'Что должен сделать агент?', taskLink: 'Связать с задачей', noTask: 'Не связывать', fast: 'Быстро', smart: 'Умно', run: 'Отправить', running: 'Агент работает…',
       history: 'Результаты', noRuns: 'Результатов пока нет.', copy: 'Копия', copied: 'Скопировано', ok: 'DODA проверила: хорошо', needs: 'DODA: нужно доработать', unchecked: 'Не проверено', saveLesson: 'Сохранить как урок', lessonSaved: 'Записано в память',
+      dueLbl: 'Срок', repNone: 'Не повторять', repDaily: 'Каждый день', repWeekly: 'Каждую неделю', repMonthly: 'Каждый месяц', dToday: 'Сегодня', dLate: 'Просрочено', repeatLbl: 'Повтор',
       todoPh: 'Новая задача…', addBtn: 'Добавить', clearDone: 'Очистить выполненные', todoEmpty: 'Список пуст.', done: 'выполнено', priority: 'Важно',
       memPh: 'Что запомнить?', fact: 'Факт', lesson: 'Урок', preference: 'Предпочтение', memEmpty: 'Память пуста. Агент учитывает эти записи в каждом задании.', dodaMemD: 'DODA запоминает факты из диалогов и от вас. Всё видно здесь.',
       instr: 'Инструкция', save: 'Сохранить', saved: 'Сохранено', del: 'Удалить агента', sure: 'Точно удалить', remove: 'Удалить', netErr: 'Ошибка связи.',
@@ -69,6 +71,9 @@
     } catch { return { status: 0, data: {} }; }
   }
   const errText = (r) => (r.data && r.data.error && r.data.error.message) || tr('netErr');
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
+  const shortDate = (s) => { const [, m, d] = s.split('-'); return `${d}.${m}`; };
   const stagger = (els) => els.forEach((el, i) => el.style.setProperty('--i', String(Math.min(i, 14))));
   const svg = (d, s = 16) => { const n = 'http://www.w3.org/2000/svg'; const e = document.createElementNS(n, 'svg'); e.setAttribute('viewBox', '0 0 24 24'); e.setAttribute('width', s); e.setAttribute('height', s); e.setAttribute('fill', 'none'); e.setAttribute('stroke', 'currentColor'); e.setAttribute('stroke-width', '2'); e.setAttribute('stroke-linecap', 'round'); e.setAttribute('stroke-linejoin', 'round'); e.setAttribute('aria-hidden', 'true'); for (const p of d) { const x = document.createElementNS(n, 'path'); x.setAttribute('d', p); e.append(x); } return e; };
   const I = { check: ['M5 12l5 5 9-10'], x: ['M6 6l12 12', 'M18 6L6 18'], star: ['M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'], plus: ['M12 5v14', 'M5 12h14'], back: ['M15 5l-7 7 7 7'] };
@@ -155,6 +160,10 @@
     const star = h('button', { type: 'button', class: 'ag-star', 'aria-pressed': 'false', title: tr('priority'), 'aria-label': tr('priority') }, svg(I.star, 16));
     star.addEventListener('click', () => { prio = !prio; star.classList.toggle('on', prio); star.setAttribute('aria-pressed', String(prio)); });
     const add = h('button', { type: 'button', class: 'ag-btn pri' }, tr('addBtn'));
+    const dueIn = h('input', { type: 'date', class: 'ag-in sm ag-date', 'aria-label': tr('dueLbl') });
+    const repSel = h('select', { class: 'ag-in sm ag-rep', 'aria-label': tr('repeatLbl'), disabled: true }, ...[['none', 'repNone'], ['daily', 'repDaily'], ['weekly', 'repWeekly'], ['monthly', 'repMonthly']].map(([v, k]) => h('option', { value: v }, tr(k))));
+    dueIn.addEventListener('input', () => { repSel.disabled = !dueIn.value; if (!dueIn.value) repSel.value = 'none'; });
+    const opts = h('div', { class: 'ag-row ag-opts' }, h('label', { class: 'ag-muted' }, tr('dueLbl') + ' '), dueIn, repSel);
     const list = h('ul', { class: 'ag-todos' });
     const foot = h('div', { class: 'ag-foot' });
     const msg = h('div', { class: 'ag-msg', role: 'status' });
@@ -172,8 +181,10 @@
           assign = h('select', { class: 'ag-assign', 'aria-label': tr('assign') }, h('option', { value: '' }, '→ ' + tr('assign')), ...panelAgents.map((x) => h('option', { value: x.id }, x.name)));
           assign.addEventListener('change', async () => { if (!assign.value) return; li.classList.add('out'); const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { agent: assign.value } }); if (r.status === 200) { todos = r.data.todos; setTimeout(() => render(), 180); } else li.classList.remove('out'); });
         }
-        const li = h('li', { class: 'ag-td' + (t.done ? ' done' : '') + (t.id === animateId ? ' in' : '') }, cb, h('span', { class: 'ag-td-t' }, t.text), assign, st, rm);
-        cb.addEventListener('click', async () => { li.classList.toggle('done'); const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { done: !t.done } }); if (r.status === 200) { todos = r.data.todos; setTimeout(() => render(), 220); } });
+        const now = todayStr();
+        const dueBadge = t.due ? h('i', { class: 'ag-due' + (!t.done && t.due < now ? ' late' : t.due === now ? ' today' : '') }, (t.repeat !== 'none' ? '↻ ' : '') + (t.due === now ? tr('dToday') : t.due < now && !t.done ? tr('dLate') + ' · ' + shortDate(t.due) : shortDate(t.due))) : null;
+        const li = h('li', { class: 'ag-td' + (t.done ? ' done' : '') + (t.id === animateId ? ' in' : '') }, cb, h('span', { class: 'ag-td-t' }, t.text), dueBadge, assign, st, rm);
+        cb.addEventListener('click', async () => { li.classList.toggle('done'); const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { done: !t.done, today: todayStr() } }); if (r.status === 200) { todos = r.data.todos; setTimeout(() => render(), 220); } });
         st.addEventListener('click', async () => { const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { priority: !t.priority } }); if (r.status === 200) { todos = r.data.todos; render(); } });
         rm.addEventListener('click', async () => { li.classList.add('out'); const r = await api('/api/todos/' + t.id, { method: 'DELETE' }); if (r.status === 200) { todos = r.data.todos; setTimeout(() => render(), 180); } });
         return li;
@@ -184,13 +195,13 @@
     const submit = async () => {
       const text = input.value.trim();
       if (!text) { input.focus(); return; }
-      const r = await api('/api/todos', { method: 'POST', body: { agent: scope, text, priority: prio } });
-      if (r.status === 201) { input.value = ''; prio = false; star.classList.remove('on'); msg.textContent = ''; todos = r.data.todos; const top = todos.filter((t) => t.text === text).sort((a, b) => b.id - a.id)[0]; render(top && top.id); input.focus(); }
+      const r = await api('/api/todos', { method: 'POST', body: { agent: scope, text, priority: prio, ...(dueIn.value ? { due: dueIn.value, repeat: repSel.value } : {}) } });
+      if (r.status === 201) { input.value = ''; prio = false; star.classList.remove('on'); dueIn.value = ''; repSel.value = 'none'; repSel.disabled = true; msg.textContent = ''; todos = r.data.todos; const top = todos.filter((t) => t.text === text).sort((a, b) => b.id - a.id)[0]; render(top && top.id); input.focus(); }
       else msg.textContent = errText(r);
     };
     add.addEventListener('click', submit);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); } });
-    root.append(h('div', { class: 'ag-addrow' }, input, star, add), msg, list, foot);
+    root.append(h('div', { class: 'ag-addrow' }, input, star, add), opts, msg, list, foot);
     api('/api/todos?agent=' + scope).then((r) => { if (r.status === 200) { todos = r.data.todos; render(); } });
     if (scope === 'doda') api('/api/agents').then((r) => { if (r.status === 200) { panelAgents = r.data.agents; render(); } });
     return root;
@@ -500,7 +511,12 @@
     return root;
   }
 
-  function mount(container) { unmount(); box = h('div', { class: 'agroot' }); container.append(box); home(); }
+  async function openById(id) {
+    const r = await api('/api/agents');
+    const a = r.status === 200 ? r.data.agents.find((x) => x.id === id) : null;
+    if (a) agentPage(a); else home();
+  }
+  function mount(container, opts = {}) { unmount(); box = h('div', { class: 'agroot' }); container.append(box); if (opts.agent) openById(opts.agent); else home(); }
   function unmount() { if (box) box.remove(); box = null; }
   window.DODA_AGENTS = { mount, unmount };
 })();

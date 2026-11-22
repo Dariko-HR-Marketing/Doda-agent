@@ -214,6 +214,12 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX agent_memory_agent ON agent_memory(agent_id, created_at);
   `,
+  `
+  -- To-do muddati (YYYY-MM-DD, foydalanuvchining mahalliy sanasi) va takrorlanishi
+  ALTER TABLE todos ADD COLUMN due TEXT;
+  ALTER TABLE todos ADD COLUMN repeat TEXT NOT NULL DEFAULT 'none' CHECK (repeat IN ('none','daily','weekly','monthly'));
+  CREATE INDEX todos_due ON todos(user_id, done, due);
+  `,
 ];
 
 export function openDb(path: string): Db {

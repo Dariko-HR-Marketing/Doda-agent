@@ -9,7 +9,7 @@
   const T = {
     uz: {
       placeholder: 'DODAga yozing yoki gapiring…', send: 'Yuborish', stop: 'To‘xtatish', mic: 'Ovozli kiritish', micStop: 'Tinglashni to‘xtatish',
-      tasksT: 'Vazifalar', agentsT: 'Agentlar', keysT: 'AI kalitlari', keyBannerT: 'Boshlash uchun o‘z AI kalitingizni ulang', keyBannerP: 'DODA sizning shaxsiy Anthropic (Claude), Google Gemini yoki OpenAI hisobingiz bilan ishlaydi: xarajat to‘g‘ridan-to‘g‘ri sizning hisobingizdan yechiladi.', keyBannerB: 'Kalit ulash', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
+      todayT: 'Bugun', tasksT: 'Vazifalar', agentsT: 'Agentlar', keysT: 'AI kalitlari', keyBannerT: 'Boshlash uchun o‘z AI kalitingizni ulang', keyBannerP: 'DODA sizning shaxsiy Anthropic (Claude), Google Gemini yoki OpenAI hisobingiz bilan ishlaydi: xarajat to‘g‘ridan-to‘g‘ri sizning hisobingizdan yechiladi.', keyBannerB: 'Kalit ulash', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
       today: 'Bugun', yesterday: 'Kecha', week: 'Oxirgi 7 kun', older: 'Oldinroq', rename: 'Nomini o‘zgartirish', del: 'O‘chirish', delSure: 'Aniq o‘chiraman', more: 'Amallar',
       account: 'Akkaunt', language: 'Til', logout: 'Chiqish', sbOpen: 'Panelni ochish', sbClose: 'Panelni yopish',
       morning: 'Xayrli tong', day: 'Xayrli kun', evening: 'Xayrli kech', night: 'Xayrli tun', ask: 'Nima haqida gaplashamiz?',
@@ -28,7 +28,7 @@
     },
     ru: {
       placeholder: 'Напишите DODA или скажите…', send: 'Отправить', stop: 'Остановить', mic: 'Голосовой ввод', micStop: 'Остановить запись',
-      tasksT: 'Задачи', agentsT: 'Агенты', keysT: 'Ключи ИИ', keyBannerT: 'Чтобы начать, подключите свой ключ ИИ', keyBannerP: 'DODA работает с вашим личным аккаунтом Anthropic (Claude), Google Gemini или OpenAI: расходы списываются напрямую с вашего счёта.', keyBannerB: 'Подключить ключ', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
+      todayT: 'Сегодня', tasksT: 'Задачи', agentsT: 'Агенты', keysT: 'Ключи ИИ', keyBannerT: 'Чтобы начать, подключите свой ключ ИИ', keyBannerP: 'DODA работает с вашим личным аккаунтом Anthropic (Claude), Google Gemini или OpenAI: расходы списываются напрямую с вашего счёта.', keyBannerB: 'Подключить ключ', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
       today: 'Сегодня', yesterday: 'Вчера', week: 'Последние 7 дней', older: 'Ранее', rename: 'Переименовать', del: 'Удалить', delSure: 'Точно удалить', more: 'Действия',
       account: 'Аккаунт', language: 'Язык', logout: 'Выйти', sbOpen: 'Открыть панель', sbClose: 'Закрыть панель',
       morning: 'Доброе утро', day: 'Добрый день', evening: 'Добрый вечер', night: 'Доброй ночи', ask: 'О чём поговорим?',
@@ -82,6 +82,7 @@
     x: ['M6 6l12 12', 'M18 6L6 18'],
     agents: ['M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M5 22v-3a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v3', 'M9 11h.01', 'M15 11h.01'],
     key: ['M15.5 8.5a4 4 0 1 1-5.2 3.8L4 18.6V21h3v-2h2v-2h2l1.1-1.2', 'M16.5 7.5h.01'],
+    sun: ['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M12 2v2', 'M12 20v2', 'M2 12h2', 'M20 12h2', 'M5 5l1.5 1.5', 'M17.5 17.5L19 19', 'M19 5l-1.5 1.5', 'M6.5 17.5L5 19'],
     tasks: ['M4 6l2 2 3-3', 'M12 7h8', 'M4 14l2 2 3-3', 'M12 15h8'],
     copy: ['M9 9h10v10H9z', 'M5 15V5h10'],
     check: ['M5 12l5 5 9-10'],
@@ -187,6 +188,7 @@
     ui.sbClose = h('button', { type: 'button', class: 'min-icon', onclick: () => setSidebar(false) }, svg(IC.panel));
     ui.rowNew = h('button', { type: 'button', class: 'sb-row', onclick: newChat }, svg(IC.plus, 18), h('span'));
     ui.rowSearch = h('button', { type: 'button', class: 'sb-row', onclick: toggleSearch }, svg(IC.search, 18), h('span'));
+    ui.rowToday = h('button', { type: 'button', class: 'sb-row', onclick: () => { if (isMobile()) setSidebar(false); openOverlay('today'); } }, svg(IC.sun, 18), h('span'));
     ui.rowTasks = h('button', { type: 'button', class: 'sb-row', onclick: () => { if (isMobile()) setSidebar(false); openOverlay('tasks'); } }, svg(IC.tasks, 18), h('span'));
     ui.rowAgents = h('button', { type: 'button', class: 'sb-row', onclick: () => { if (isMobile()) setSidebar(false); openOverlay('agents'); } }, svg(IC.agents, 18), h('span'));
     ui.rowFiles = h('button', { type: 'button', class: 'sb-row', onclick: () => { if (isMobile()) setSidebar(false); openOverlay('files'); } }, svg(IC.folder, 18), h('span'));
@@ -196,7 +198,7 @@
       h('span', { class: 'sb-avatar', 'aria-hidden': 'true' }, initials()), h('span', { class: 'sb-uname' }, firstName() || '—'), svg(IC.chevron, 16));
     ui.sb = h('aside', { class: 'sb', 'aria-label': 'DODA' },
       h('div', { class: 'sb-head' }, ui.brand, ui.sbClose),
-      h('nav', { class: 'sb-nav' }, ui.rowNew, ui.rowSearch, ui.rowTasks, ui.rowAgents, ui.rowFiles),
+      h('nav', { class: 'sb-nav' }, ui.rowNew, ui.rowSearch, ui.rowToday, ui.rowTasks, ui.rowAgents, ui.rowFiles),
       ui.search, ui.list, h('div', { class: 'sb-foot' }, ui.userBtn));
     ui.backdrop = h('div', { class: 'sb-backdrop', onclick: () => setSidebar(false) });
 
@@ -300,6 +302,7 @@
     ui.recCancel.setAttribute('aria-label', tr('recDiscard')); ui.recStop.setAttribute('aria-label', tr('recStop')); ui.recSend.setAttribute('aria-label', tr('recSend'));
     ui.recStop.title = tr('recStop'); ui.recSend.title = tr('recSend'); ui.recCancel.title = tr('recDiscard');
     renderKeyBanner();
+    ui.rowToday.lastChild.textContent = tr('todayT');
     ui.rowTasks.lastChild.textContent = tr('tasksT');
     ui.rowAgents.lastChild.textContent = tr('agentsT');
     ui.rowFiles.lastChild.textContent = tr('files');
@@ -860,17 +863,18 @@
       h('b', {}, tr('keyBannerT')), h('p', {}, tr('keyBannerP')),
       h('div', { class: 'min-consent-actions' }, h('button', { type: 'button', class: 'min-btn primary', onclick: () => openOverlay('keys') }, tr('keyBannerB'))));
   }
+  document.addEventListener('doda:open', (e) => { const d = e.detail || {}; closeFiles(true); openOverlay(d.kind, d.agent ? { agent: d.agent } : undefined); });
   document.addEventListener('doda:open-keys', () => { closeFiles(true); openOverlay('keys'); });
   document.addEventListener('doda:keys', () => { refreshKeys(); serverSttRefresh(); });
   function serverSttRefresh() {
     api('/api/voice/status').then((r) => { if (r.status === 200) serverStt = !!r.data.server; if (root && ui.micBtn) ui.micBtn.hidden = !speechCtor() && !canRecord(); });
   }
 
-  const OVERLAYS = { files: () => window.DODA_WS, tasks: () => window.DODA_TASKS, agents: () => window.DODA_AGENTS, keys: () => window.DODA_KEYS };
+  const OVERLAYS = { files: () => window.DODA_WS, tasks: () => window.DODA_TASKS, agents: () => window.DODA_AGENTS, keys: () => window.DODA_KEYS, today: () => window.DODA_TODAY };
   function openOverlay(kind, opts) {
     const mod = OVERLAYS[kind] && OVERLAYS[kind]();
     if (files || !mod) return;
-    const title = kind === 'tasks' ? tr('tasksT') : kind === 'agents' ? tr('agentsT') : kind === 'keys' ? tr('keysT') : tr('files');
+    const title = kind === 'today' ? tr('todayT') : kind === 'tasks' ? tr('tasksT') : kind === 'agents' ? tr('agentsT') : kind === 'keys' ? tr('keysT') : tr('files');
     const body = h('div', { class: 'min-files-body' });
     files = h('div', { class: 'min-files', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'min-files-head' }, h('b', {}, title), h('button', { type: 'button', class: 'min-icon', 'aria-label': 'Yopish', onclick: () => closeFiles() }, svg(IC.x))), body);

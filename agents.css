@@ -117,3 +117,26 @@
 .ag-alt{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .ag-assign{max-width:130px;min-height:30px;padding:0 6px;border:1px solid #28495b;border-radius:8px;background:#0a2231;color:#9dbbc4;font-size:12px}
 .ag-assign:focus{outline:0;border-color:#4fdc7c}
+
+/* muddat va takrorlanish */
+.ag-opts{gap:8px}.ag-date{width:auto;min-width:150px;color-scheme:dark}.ag-rep{width:auto;min-width:150px}.ag-opts label{font-size:13px}
+.ag-due{font-style:normal;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;background:#16364a;color:#9dbbc4;white-space:nowrap}
+.ag-due.today{background:#12452f;color:#7be8a0}.ag-due.late{background:#4a2330;color:#ffb3bd}
+
+/* Bugun paneli */
+.td-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.td-stats{display:flex;gap:8px}
+.td-stat{display:grid;gap:0;min-width:84px;padding:8px 14px;border-radius:14px;background:#0b2233;border:1px solid #1f4252;text-align:center}
+.td-stat b{font-size:22px;line-height:1.2}.td-stat span{font-size:12px;color:#8fb2bb}
+.td-stat.late{border-color:#6b3340}.td-stat.late b{color:#ffb3bd}.td-stat.today{border-color:#2c7a58}.td-stat.today b{color:#7be8a0}
+.td-sec{display:grid;gap:8px}
+.td-rows{display:grid;gap:6px}
+.td-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;text-align:left;width:100%;padding:11px 14px;border:1px solid #17384a;border-radius:12px;background:#0b2233;color:inherit;cursor:pointer;transition:background .15s,border-color .15s}
+.td-row:hover{background:#0e2b3f;border-color:#2a5a6a}
+.td-row .tk-bar{grid-column:1/-1}.td-row-t{overflow-wrap:anywhere;font-size:14.5px}
+.td-row.run{grid-template-columns:auto 1fr auto auto}
+.td-agents{grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}.td-agents .ag-card{min-height:0}
+.ag-empty.left{text-align:left;padding:6px 2px}
+.td-usage{margin:6px 0 0}
+.ag-tick{font-size:13px;font-weight:900}
+@media (max-width:600px){.td-row.run{grid-template-columns:1fr auto}.td-row.run b{grid-column:1/-1}}

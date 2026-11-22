@@ -1,7 +1,7 @@
 /* DODA service worker: ilova qobig'i oflayn ochilishi uchun. API va boshqa saytlar KESHLANMAYDI (maxfiylik).
    Strategiya: tarmoq birinchi, yo'q bo'lsa keshdan. Yangilanish avtomatik (eski kesh versiyasi o'chiriladi). */
-const VERSION = 'doda-shell-v1';
-const SHELL = ['./', './index.html', './app-min.css', './app-min.js', './auth.css', './auth.js', './tasks.css', './tasks.js', './agents.css', './agents.js', './keys.js', './workspace.css', './workspace.js', './manifest.webmanifest', './icon-192.png'];
+const VERSION = 'doda-shell-v2';
+const SHELL = ['./', './index.html', './app-min.css', './app-min.js', './auth.css', './auth.js', './tasks.css', './tasks.js', './agents.css', './agents.js', './keys.js', './today.js', './workspace.css', './workspace.js', './manifest.webmanifest', './icon-192.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => Promise.allSettled(SHELL.map((u) => c.add(u)))).then(() => self.skipWaiting()));
