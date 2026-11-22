@@ -10,6 +10,7 @@
       chief: 'Bosh agent', chiefD: 'Umumiy ro‘yxat, xotira, topshiriq taqsimoti', newAgent: 'Yangi agent', back: 'Orqaga',
       todo: 'Ro‘yxat', memory: 'Xotira', work: 'Ish', caps: 'Imkoniyatlar', settings: 'Sozlama',
       open: 'ochiq', mem: 'xotira', none: 'Hali agent yo‘q. Birinchisini yarating.',
+      routePh: 'DODA’ga topshiriq yozing: qaysi agent bajarsin, DODA aniqlaydi…', routeBtn: 'Agentni tanlash', routing: 'Tahlil qilinmoqda…', bestFit: 'Eng mos agent', sure2: 'aniq', maybe: 'taxminan', toAgent: 'Agentga topshirish', addToAgent: 'Agent ro‘yxatiga', addToDoda: 'DODA ro‘yxatiga', added: 'Qo‘shildi', others: 'Boshqa variantlar', noFit: 'Mos agent yo‘q.', createSuggest: 'DODA tavsiyasi: yangi agent yarating', createBtn: 'Tavsiya bilan yaratish', generalHint: 'Bu umumiy savolga o‘xshaydi: agent kerak emas. Chatda DODA o‘zi javob beradi. Xohlasangiz ro‘yxatga qo‘shing.', assign: 'Agentga',
       // wizard
       step1: 'Qaysi rol kerak?', step1D: 'Rolni tanlang. DODA unga mos vazifa, vosita va holatlarni tavsiya qiladi.', other: 'Boshqa rol', otherPh: 'Rolni yozing. Masalan: “Mijozlar bilan yozishma yurituvchi” yoki “Moliya hisobotchi”',
       suggest: 'DODA tavsiyasini ko‘rish', closest: 'Bu rol shu shablonga yaqin:', useTpl: 'Shablondan foydalanish', keepOwn: 'O‘zimniki',
@@ -30,6 +31,7 @@
       chief: 'Главный агент', chiefD: 'Общий список, память, распределение заданий', newAgent: 'Новый агент', back: 'Назад',
       todo: 'Список', memory: 'Память', work: 'Работа', caps: 'Возможности', settings: 'Настройки',
       open: 'открыто', mem: 'память', none: 'Агентов пока нет. Создайте первого.',
+      routePh: 'Напишите задание для DODA: она определит, какой агент выполнит…', routeBtn: 'Подобрать агента', routing: 'Анализирую…', bestFit: 'Лучше всего подходит', sure2: 'уверенно', maybe: 'вероятно', toAgent: 'Передать агенту', addToAgent: 'В список агента', addToDoda: 'В список DODA', added: 'Добавлено', others: 'Другие варианты', noFit: 'Подходящего агента нет.', createSuggest: 'Рекомендация DODA: создайте нового агента', createBtn: 'Создать по рекомендации', generalHint: 'Похоже на общий вопрос: агент не нужен. В чате DODA ответит сама. При желании добавьте в список.', assign: 'Агенту',
       step1: 'Какая роль нужна?', step1D: 'Выберите роль. DODA предложит подходящие задачи, инструменты и ситуации.', other: 'Другая роль', otherPh: 'Опишите роль. Например: «Ведёт переписку с клиентами» или «Финансовый отчётность»',
       suggest: 'Показать рекомендации DODA', closest: 'Эта роль близка к шаблону:', useTpl: 'Использовать шаблон', keepOwn: 'Свою',
       step2: 'Рекомендации DODA', step2D: 'Рекомендуемое уже отмечено. Уберите лишнее, добавьте нужное.', name: 'Имя агента', create: 'Создать агента', creating: 'Создаю…',
@@ -157,6 +159,7 @@
     const foot = h('div', { class: 'ag-foot' });
     const msg = h('div', { class: 'ag-msg', role: 'status' });
     let todos = [];
+    let panelAgents = [];
 
     const render = (animateId) => {
       const openN = todos.filter((t) => !t.done).length;
@@ -164,7 +167,12 @@
         const cb = h('button', { type: 'button', role: 'checkbox', 'aria-checked': String(t.done), class: 'ag-cb' + (t.done ? ' on' : ''), 'aria-label': t.text }, svg(I.check, 14));
         const st = h('button', { type: 'button', class: 'ag-star sm' + (t.priority ? ' on' : ''), 'aria-pressed': String(t.priority), title: tr('priority'), 'aria-label': tr('priority') }, svg(I.star, 14));
         const rm = h('button', { type: 'button', class: 'ag-x', 'aria-label': tr('remove') }, svg(I.x, 14));
-        const li = h('li', { class: 'ag-td' + (t.done ? ' done' : '') + (t.id === animateId ? ' in' : '') }, cb, h('span', { class: 'ag-td-t' }, t.text), st, rm);
+        let assign = null;
+        if (scope === 'doda' && !t.done && panelAgents.length) {
+          assign = h('select', { class: 'ag-assign', 'aria-label': tr('assign') }, h('option', { value: '' }, '→ ' + tr('assign')), ...panelAgents.map((x) => h('option', { value: x.id }, x.name)));
+          assign.addEventListener('change', async () => { if (!assign.value) return; li.classList.add('out'); const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { agent: assign.value } }); if (r.status === 200) { todos = r.data.todos; setTimeout(() => render(), 180); } else li.classList.remove('out'); });
+        }
+        const li = h('li', { class: 'ag-td' + (t.done ? ' done' : '') + (t.id === animateId ? ' in' : '') }, cb, h('span', { class: 'ag-td-t' }, t.text), assign, st, rm);
         cb.addEventListener('click', async () => { li.classList.toggle('done'); const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { done: !t.done } }); if (r.status === 200) { todos = r.data.todos; setTimeout(() => render(), 220); } });
         st.addEventListener('click', async () => { const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { priority: !t.priority } }); if (r.status === 200) { todos = r.data.todos; render(); } });
         rm.addEventListener('click', async () => { li.classList.add('out'); const r = await api('/api/todos/' + t.id, { method: 'DELETE' }); if (r.status === 200) { todos = r.data.todos; setTimeout(() => render(), 180); } });
@@ -184,6 +192,7 @@
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); } });
     root.append(h('div', { class: 'ag-addrow' }, input, star, add), msg, list, foot);
     api('/api/todos?agent=' + scope).then((r) => { if (r.status === 200) { todos = r.data.todos; render(); } });
+    if (scope === 'doda') api('/api/agents').then((r) => { if (r.status === 200) { panelAgents = r.data.agents; render(); } });
     return root;
   }
 
@@ -260,7 +269,53 @@
       h('span', { class: 'ag-dot' }), h('b', {}, a.name), h('span', { class: 'ag-role' }, a.role),
       h('span', { class: 'ag-chips' }, h('i', { class: 'ag-chip' }, `${a.openTodos} ${tr('open')}`), h('i', { class: 'ag-chip' }, `${a.memoryCount} ${tr('mem')}`), h('i', { class: 'ag-chip' }, `${a.capabilities.length + a.custom.length} ✓`))));
     cards.push(h('button', { type: 'button', class: 'ag-card new', 'data-st': '1', onclick: wizard }, svg(I.plus, 22), h('b', {}, tr('newAgent'))));
-    view(h('div', { class: 'ag' }, h('p', { class: 'ag-sub' }, tr('sub')), chief, h('div', { class: 'ag-grid' }, cards), agents.length ? null : h('p', { class: 'ag-muted' }, tr('none'))));
+    view(h('div', { class: 'ag' }, h('p', { class: 'ag-sub' }, tr('sub')), routeBox(agents), chief, h('div', { class: 'ag-grid' }, cards), agents.length ? null : h('p', { class: 'ag-muted' }, tr('none'))));
+  }
+
+  /* ================= DODA marshrutizatori ================= */
+  function routeBox(agents) {
+    const ta = h('textarea', { class: 'ag-in ta', rows: '2', maxlength: '2000', placeholder: tr('routePh'), 'aria-label': tr('routePh') });
+    const go = h('button', { type: 'button', class: 'ag-btn pri' }, tr('routeBtn'));
+    const out = h('div', { class: 'ag-route-out', 'aria-live': 'polite' });
+    const addTodo = async (agent, text, btn) => { const r = await api('/api/todos', { method: 'POST', body: { agent, text: text.slice(0, 300) } }); btn.textContent = r.status === 201 ? '✓ ' + tr('added') : errText(r); btn.disabled = true; };
+    const run = async () => {
+      const text = ta.value.trim();
+      if (text.length < 3) { ta.focus(); return; }
+      go.disabled = true; go.textContent = tr('routing'); out.replaceChildren();
+      const r = await api('/api/agents/route', { method: 'POST', body: { text } });
+      go.disabled = false; go.textContent = tr('routeBtn');
+      if (r.status !== 200) { out.replaceChildren(h('div', { class: 'ag-msg' }, errText(r))); return; }
+      const d = r.data;
+      const todoBtn = (agentId) => { const b = h('button', { type: 'button', class: 'ag-btn sm' }, agentId === 'doda' ? tr('addToDoda') : tr('addToAgent')); b.addEventListener('click', () => addTodo(agentId, text, b)); return b; };
+      let card;
+      if (d.match) {
+        const a = agents.find((x) => x.id === d.match.agentId);
+        card = h('div', { class: 'ag-rc in' },
+          h('div', { class: 'ag-rc-h' }, h('span', { class: 'ag-muted' }, tr('bestFit')), h('i', { class: 'ag-chip' }, tr(d.match.confidence === 'high' ? 'sure2' : 'maybe'))),
+          h('b', { class: 'ag-rc-n' }, d.match.name),
+          h('div', { class: 'ag-row' }, h('button', { type: 'button', class: 'ag-btn pri sm', onclick: () => a && agentPage(a, 'work', text) }, tr('toAgent')), todoBtn(d.match.agentId)),
+          d.alternatives.length ? h('div', { class: 'ag-alt' }, h('span', { class: 'ag-muted' }, tr('others') + ': '), ...d.alternatives.map((x) => h('button', { type: 'button', class: 'ag-lk', onclick: () => { const aa = agents.find((y) => y.id === x.agentId); aa && agentPage(aa, 'work', text); } }, x.name))) : null);
+      } else if (d.create) {
+        card = h('div', { class: 'ag-rc in' },
+          h('div', { class: 'ag-rc-h' }, h('span', { class: 'ag-muted' }, tr('noFit'))),
+          h('b', { class: 'ag-rc-n' }, tr('createSuggest')),
+          h('div', { class: 'ag-row' }, h('button', { type: 'button', class: 'ag-btn pri sm', onclick: () => startCreate(d.create.template, text) }, tr('createBtn')), todoBtn('doda')));
+      } else {
+        card = h('div', { class: 'ag-rc in' }, h('p', { class: 'ag-sub' }, tr('generalHint')), h('div', { class: 'ag-row' }, todoBtn('doda')));
+      }
+      out.replaceChildren(card);
+    };
+    go.addEventListener('click', run);
+    ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(); } });
+    return h('div', { class: 'ag-route', 'data-st': '1' }, ta, h('div', { class: 'ag-row' }, go, h('span', { class: 'ag-muted' }, 'Ctrl+Enter')), out);
+  }
+
+  /** Tavsiya etilgan rol bilan to'g'ridan-to'g'ri 2-bosqich (marshrutizatordan) */
+  async function startCreate(templateId, prefill) {
+    const [c, r] = await Promise.all([api('/api/agents/catalog?template=' + templateId), api('/api/agents')]);
+    if (!box || c.status !== 200) return;
+    const tpl = (r.data.templates || []).find((t) => t.id === templateId);
+    step2(templateId, null, c.data, tpl ? (tpl[lang()] || tpl.uz).name : templateId, prefill);
   }
 
   /* ================= yangi agent ustasi ================= */
@@ -301,7 +356,7 @@
     }
   }
 
-  function step2(templateId, ownRole, data, defName) {
+  function step2(templateId, ownRole, data, defName, prefill) {
     const state = { ids: new Set(data.recommended), custom: [] };
     const name = h('input', { class: 'ag-in', maxlength: '60', value: defName, 'aria-label': tr('name') });
     const msg = h('div', { class: 'ag-msg', role: 'status' });
@@ -315,7 +370,7 @@
       const body = templateId ? { template: templateId, ...common }
         : { ...common, role: (ownRole || nm).slice(0, 200), instructions: `Sen "${nm}" rolisan. Vazifang: ${(ownRole || nm).slice(0, 300)}. Aniq, qisqa va foydali yoz; ma'lumot yetishmasa, nimaligini ayt.` };
       const r = await api('/api/agents', { method: 'POST', body });
-      if (r.status === 201) agentPage(r.data.agent, 'work'); else { msg.textContent = errText(r); create.disabled = false; create.textContent = tr('create'); }
+      if (r.status === 201) agentPage(r.data.agent, 'work', prefill); else { msg.textContent = errText(r); create.disabled = false; create.textContent = tr('create'); }
     });
     view(h('div', { class: 'ag' },
       back(wizard),
@@ -325,13 +380,13 @@
   }
 
   /* ================= agent sahifasi ================= */
-  async function agentPage(a, start) {
+  async function agentPage(a, start, prefill) {
     const nameIn = h('input', { class: 'ag-title', value: a.name, maxlength: '60', 'aria-label': tr('name') });
     nameIn.addEventListener('change', async () => { const v = nameIn.value.trim(); if (!v) { nameIn.value = a.name; return; } const r = await api('/api/agents/' + a.id, { method: 'PATCH', body: { name: v } }); if (r.status === 200) a = r.data.agent; });
     const catR = await api('/api/agents/catalog?template=' + (a.template || 'general'));
     if (!box) return;
     const t = tabs([
-      { key: 'work', label: tr('work'), render: () => workPanel(a) },
+      { key: 'work', label: tr('work'), render: () => workPanel(a, prefill) },
       { key: 'todo', label: tr('todo'), render: () => todoPanel(a.id) },
       { key: 'memory', label: tr('memory'), render: () => memoryPanel(a.id) },
       { key: 'caps', label: tr('caps'), render: () => capsPanel(a, catR.data) },
@@ -340,7 +395,7 @@
     view(h('div', { class: 'ag' }, back(home), h('div', { class: 'ag-head' }, h('span', { class: 'ag-dot big' }), nameIn), h('p', { class: 'ag-sub' }, a.role), t.bar, t.body));
   }
 
-  function workPanel(a) {
+  function workPanel(a, prefill) {
     const root = h('div', { class: 'ag-panel' });
     let tier = 'main';
     const req = h('textarea', { class: 'ag-in ta', rows: '4', maxlength: '6000', placeholder: tr('requestPh'), 'aria-label': tr('request') });
@@ -350,6 +405,7 @@
     const sgs = ['light', 'main'].map((k) => h('button', { type: 'button', class: 'ag-sg' + (k === tier ? ' on' : ''), 'aria-pressed': String(k === tier) }, tr(k === 'light' ? 'fast' : 'smart')));
     sgs.forEach((b, i) => b.addEventListener('click', () => { tier = i ? 'main' : 'light'; sgs.forEach((x, j) => { x.classList.toggle('on', j === i); x.setAttribute('aria-pressed', String(j === i)); }); }));
     const go = h('button', { type: 'button', class: 'ag-btn pri' }, tr('run'));
+    if (prefill) req.value = prefill;
     let list = [];
     const paint = () => {
       runs.replaceChildren(...(list.length ? list.map((r, i) => {

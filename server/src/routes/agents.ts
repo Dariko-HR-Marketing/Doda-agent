@@ -7,6 +7,7 @@ import { fail, type Env } from "../http.js";
 import { recordUsage, sharedSpendUsd } from "../usage.js";
 import { ChainError, chainFor, legacyChain, runChain } from "../llm/multi.js";
 import { requireAuth } from "../session.js";
+import { routeRequest } from "../agentRouter.js";
 import { catalogFor, localized, recommendedIds, selectableIds, suggestTemplate, type CatItem } from "../catalog.js";
 import { isSensitive } from "../memory.js";
 
@@ -70,6 +71,17 @@ agentRoutes.get("/catalog", (c) => {
   const template = requested || suggestTemplate(q);
   const cat = catalogFor(template);
   return c.json({ template: cat.id, suggested: !requested, catalog: localized(cat, user.locale === "ru" ? "ru" : "uz"), recommended: recommendedIds(cat) });
+});
+
+/** DODA marshrutizatori: topshiriqni qaysi agentga berish kerak (AI siz, qoidalar bo'yicha) */
+agentRoutes.post("/route", async (c) => {
+  const { db } = c.get("deps");
+  const user = c.get("user")!;
+  const body = z.object({ text: z.string().trim().min(3).max(2000) }).safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return fail(c, 400, "invalid_input");
+  const rows = db.prepare("SELECT * FROM agents WHERE user_id = ? ORDER BY created_at").all(user.id) as AgentRow[];
+  const route = routeRequest(body.data.text, rows.map((r) => ({ id: r.id, template: r.template, name: r.name, role: r.role, capabilities: parse<string[]>(r.capabilities, []), custom: parse(r.custom_items, []) })));
+  return c.json(route);
 });
 
 agentRoutes.post("/", async (c) => {

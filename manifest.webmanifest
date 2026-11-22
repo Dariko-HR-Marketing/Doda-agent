@@ -1,0 +1,17 @@
+{
+  "name": "DODA: yordamchi agentlar uyushmasi",
+  "short_name": "DODA",
+  "description": "Bosh agent DODA va rol agentlar: vazifalar, xotira, ro'yxatlar.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#061528",
+  "theme_color": "#061528",
+  "lang": "uz",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

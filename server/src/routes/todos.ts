@@ -12,7 +12,7 @@ export const todoRoutes = new Hono<Env>();
 todoRoutes.use("*", requireAuth);
 
 const createSchema = z.object({ agent: z.string().min(1).max(64).default("doda"), text: z.string().trim().min(1).max(300), priority: z.boolean().default(false) });
-const patchSchema = z.object({ done: z.boolean().optional(), text: z.string().trim().min(1).max(300).optional(), priority: z.boolean().optional() });
+const patchSchema = z.object({ done: z.boolean().optional(), text: z.string().trim().min(1).max(300).optional(), priority: z.boolean().optional(), agent: z.string().min(1).max(64).optional() });
 
 /** "doda" -> null (DODA ro'yxati); aks holda foydalanuvchiga tegishli agent id, yo'q bo'lsa undefined */
 function scope(db: Db, userId: string, agent: string): string | null | undefined {
@@ -67,7 +67,17 @@ todoRoutes.patch("/:id", async (c) => {
   if (d.done !== undefined) db.prepare("UPDATE todos SET done = ?, updated_at = ? WHERE id = ?").run(d.done ? 1 : 0, now(), t.id);
   if (d.text !== undefined) db.prepare("UPDATE todos SET text = ?, updated_at = ? WHERE id = ?").run(d.text, now(), t.id);
   if (d.priority !== undefined) db.prepare("UPDATE todos SET priority = ?, updated_at = ? WHERE id = ?").run(d.priority ? 1 : 0, now(), t.id);
-  return c.json({ todos: rowsFor(db, user.id, t.agent_id) });
+  // Vazifani boshqa ro'yxatga (DODA yoki agentga) topshirish
+  let owner = t.agent_id;
+  if (d.agent !== undefined) {
+    const target = scope(db, user.id, d.agent);
+    if (target === undefined) return fail(c, 404, "not_found");
+    const n = (db.prepare(`SELECT COUNT(*) n FROM todos WHERE user_id = ? AND ${target === null ? "agent_id IS NULL" : "agent_id = ?"}`).get(...(target === null ? [user.id] : [user.id, target])) as { n: number }).n;
+    if (target !== t.agent_id && n >= MAX_TODOS) return fail(c, 400, "too_many_todos");
+    db.prepare("UPDATE todos SET agent_id = ?, updated_at = ? WHERE id = ?").run(target, now(), t.id);
+    owner = t.agent_id; // javobda hozirgi (eski) ro'yxat: vazifa undan chiqib ketadi
+  }
+  return c.json({ todos: rowsFor(db, user.id, owner) });
 });
 
 todoRoutes.delete("/:id", (c) => {

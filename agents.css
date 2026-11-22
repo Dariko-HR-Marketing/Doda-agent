@@ -107,3 +107,13 @@
 
 @media (max-width:600px){.ag-title{font-size:22px}.ag-x{opacity:1}.ag-gs{gap:8px}}
 @media (prefers-reduced-motion:reduce){.ag,.ag *,[data-st]{animation:none!important;transition:none!important}}
+
+/* marshrutizator */
+.ag-route{display:grid;gap:10px;padding:14px;border:1px solid #1f4252;border-radius:18px;background:#0b2233}
+.ag-route-out:empty{display:none}
+.ag-rc{display:grid;gap:8px;padding:12px 14px;border-radius:14px;background:#0f2f3a;border:1px solid #1f5a4a}
+.ag-rc.in{animation:agRise .3s ease-out both}
+.ag-rc-h{display:flex;justify-content:space-between;align-items:center;gap:8px}.ag-rc-n{font-size:17px}
+.ag-alt{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ag-assign{max-width:130px;min-height:30px;padding:0 6px;border:1px solid #28495b;border-radius:8px;background:#0a2231;color:#9dbbc4;font-size:12px}
+.ag-assign:focus{outline:0;border-color:#4fdc7c}

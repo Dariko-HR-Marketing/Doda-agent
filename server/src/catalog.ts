@@ -230,6 +230,13 @@ const HINTS: Array<[string, string[]]> = [
   ["sales", ["sotuv", "продаж", "mijoz", "клиент", "crm", "taklif", "предложени", "bitim", "сделк"]],
   ["analyst", ["tahlil", "аналит", "analitik", "hisobot", "отчёт", "отчет", "statistik", "статист", "kpi", "ma'lumot", "данн"]],
 ];
+export function templateScores(text: string): Record<string, number> {
+  const q = ` ${text.toLowerCase()} `;
+  const out: Record<string, number> = {};
+  for (const [id, words] of HINTS) out[id] = words.filter((w) => q.includes(w)).length;
+  return out;
+}
+
 export function suggestTemplate(text: string): string {
   const q = ` ${text.toLowerCase()} `;
   let best = "general";

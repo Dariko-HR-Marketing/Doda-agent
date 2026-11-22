@@ -263,3 +263,82 @@ describe("agent ishga tushganda kontekst", () => {
     expect(sys).not.toContain("DODA ning shaxsiy fakti");
   });
 });
+
+describe("DODA marshrutizatori (AI siz)", () => {
+  const route = async (c: string, text: string) => (await (await req("/api/agents/route", "POST", { text }, c)).json());
+
+  it("kirishsiz va qisqa matn rad etiladi", async () => {
+    expect((await req("/api/agents/route", "POST", { text: "reja tuz" })).status).toBe(401);
+    const c = await signup("a@example.com");
+    expect((await req("/api/agents/route", "POST", { text: "ab" }, c)).status).toBe(400);
+  });
+
+  it("topshiriqni mos agentga yo'naltiradi (uzbekcha va ruscha)", async () => {
+    const c = await signup("a@example.com");
+    const mkt = await mk(c, "marketing");
+    const hr = await mk(c, "hr");
+    const it = await mk(c, "it");
+    const r1 = await route(c, "Instagram uchun oylik kontent-reja va post matnlari tuzing");
+    expect(r1.match.agentId).toBe(mkt.id);
+    expect(r1.match.confidence).toBe("high");
+    expect(r1.create).toBeNull();
+    expect((await route(c, "Menejer uchun vakansiya matni va suhbat savollari kerak")).match.agentId).toBe(hr.id);
+    expect((await route(c, "Нужно найти ошибку в коде сервера")).match.agentId).toBe(it.id);
+    expect((await route(c, "Составь контент-план для рекламы в Instagram")).match.agentId).toBe(mkt.id);
+  });
+
+  it("mos agent yo'q bo'lsa, yaratishni tavsiya qiladi (DODA tavsiyasi bilan)", async () => {
+    const c = await signup("a@example.com");
+    const r = await route(c, "Mijozga tijoriy taklif va narx bo'yicha xat yozish kerak");
+    expect(r.match).toBeNull();
+    expect(r.create.template).toBe("sales");
+    expect(r.create.recommended).toContain("d_offer");
+    await mk(c, "marketing");
+    const r2 = await route(c, "Rezyume saralash va vakansiya matnlari");
+    expect(r2.match).toBeNull();
+    expect(r2.create.template).toBe("hr");
+  });
+
+  it("umumiy gap: agent ham, yaratish ham tavsiya qilinmaydi (DODA o'zi javob beradi)", async () => {
+    const c = await signup("a@example.com");
+    await mk(c, "marketing");
+    const r = await route(c, "Salom, ahvollar qalay bugun");
+    expect(r).toEqual({ match: null, alternatives: [], create: null });
+  });
+
+  it("agentning o'z imkoniyatlari va qo'shimcha bandlari hisobga olinadi", async () => {
+    const c = await signup("a@example.com");
+    await mk(c, "analyst", { capabilities: ["d_summary"] });
+    const own = await mk(c, "marketing", { name: "Mening Telegram agentim", capabilities: ["d_plan"], custom: [{ group: "duties", text: "Telegram kanal obunachilarini oshirish" }] });
+    const r = await route(c, "Telegram kanal obunachilarini oshirish yo'llari");
+    expect(r.match.agentId).toBe(own.id);
+  });
+
+  it("boshqa foydalanuvchi agentlari hisobga olinmaydi", async () => {
+    const a = await signup("a@example.com");
+    const b = await signup("b@example.com");
+    await mk(a, "marketing");
+    const r = await route(b, "Instagram uchun kontent-reja tuzing");
+    expect(r.match).toBeNull();
+    expect(r.create.template).toBe("marketing");
+  });
+});
+
+describe("vazifani agentga topshirish", () => {
+  it("DODA ro'yxatidagi vazifa agent ro'yxatiga o'tadi; teskari ham; begona agentga bo'lmaydi", async () => {
+    const a = await signup("a@example.com");
+    const b = await signup("b@example.com");
+    const ag = await mk(a, "marketing");
+    const bag = await mk(b, "hr");
+    const t = (await (await req("/api/todos", "POST", { text: "Post matnini tayyorlash" }, a)).json()).todos[0];
+    const after = await (await req(`/api/todos/${t.id}`, "PATCH", { agent: ag.id }, a)).json();
+    expect(after.todos).toEqual([]); // DODA ro'yxatidan chiqdi
+    const agt = (await (await req(`/api/todos?agent=${ag.id}`, "GET", undefined, a)).json()).todos;
+    expect(agt.map((x: any) => x.text)).toEqual(["Post matnini tayyorlash"]);
+    expect((await req(`/api/todos/${t.id}`, "PATCH", { agent: bag.id }, a)).status).toBe(404);
+    const back = await (await req(`/api/todos/${t.id}`, "PATCH", { agent: "doda" }, a)).json();
+    expect(back.todos).toEqual([]); // agent ro'yxatidan chiqdi
+    expect((await (await req("/api/todos?agent=doda", "GET", undefined, a)).json()).todos).toHaveLength(1);
+    expect((await req(`/api/todos/${t.id}`, "PATCH", { agent: "yo'q" }, a)).status).toBe(404);
+  });
+});
