@@ -254,12 +254,20 @@
     const cache = {};
     const show = (key) => {
       cur = key;
-      btns.forEach((b) => { const on = b.dataset.k === key; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); if (on) { ind.style.width = b.offsetWidth + 'px'; ind.style.transform = `translateX(${b.offsetLeft}px)`; } });
+      btns.forEach((b) => { const on = b.dataset.k === key; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; if (on) { ind.style.width = b.offsetWidth + 'px'; ind.style.transform = `translateX(${b.offsetLeft}px)`; } });
       const d = defs.find((x) => x.key === key);
       cache[key] = cache[key] || d.render();
       body.replaceChildren(cache[key]); body.classList.remove('swap'); void body.offsetWidth; body.classList.add('swap');
     };
-    btns.forEach((b) => b.addEventListener('click', () => show(b.dataset.k)));
+    btns.forEach((b, i) => {
+      b.addEventListener('click', () => show(b.dataset.k));
+      b.addEventListener('keydown', (e) => {
+        const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        const to = e.key === 'Home' ? 0 : e.key === 'End' ? btns.length - 1 : step ? (i + step + btns.length) % btns.length : -1;
+        if (to < 0) return;
+        e.preventDefault(); btns[to].focus(); show(btns[to].dataset.k);
+      });
+    });
     requestAnimationFrame(() => show(start || defs[0].key));
     new ResizeObserver(() => { const b = btns.find((x) => x.dataset.k === cur); if (b) { ind.style.width = b.offsetWidth + 'px'; ind.style.transform = `translateX(${b.offsetLeft}px)`; } }).observe(bar);
     return { bar, body };
