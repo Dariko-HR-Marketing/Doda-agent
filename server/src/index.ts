@@ -7,6 +7,7 @@ import { AnthropicProvider } from "./llm/anthropic.js";
 import { GeminiProvider } from "./llm/gemini.js";
 import { LlmRouter, type Slot } from "./llm/multi.js";
 import { OpenAIProvider } from "./llm/openai.js";
+import { backupDb, backupDir } from "./backup.js";
 import { createMailer } from "./mailer.js";
 
 const config = loadConfig();
@@ -50,6 +51,19 @@ function cleanup(): void {
 cleanup();
 const timer = setInterval(cleanup, 60 * 60 * 1000);
 timer.unref();
+
+// Kunlik zaxira nusxa (7 tasi saqlanadi). Ishga tushganda ham bitta olinadi.
+function backup(): void {
+  if (config.DB_PATH === ":memory:") return;
+  try {
+    console.log(`[backup] ${backupDb(db, backupDir(config.DB_PATH), Date.now())}`);
+  } catch (e) {
+    console.error("[backup] xato:", (e as Error).message);
+  }
+}
+backup();
+const backupTimer = setInterval(backup, 24 * 60 * 60 * 1000);
+backupTimer.unref();
 
 const server = serve({ fetch: app.fetch, port: config.PORT, hostname: config.HOST }, (info) => {
   console.log(`DODA server http://${info.address}:${info.port} (${config.NODE_ENV})`);

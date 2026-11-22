@@ -6,6 +6,7 @@
   const lang = () => (D().getLang ? D().getLang() : 'uz');
   const T = {
     uz: {
+      keysLink: 'AI kalitlari',
       title: 'Agentlar', sub: 'Bosh agent DODA topshiriqni taqsimlaydi, rol agentlar bajaradi. Har birining o‘z ro‘yxati va xotirasi bor.',
       chief: 'Bosh agent', chiefD: 'Umumiy ro‘yxat, xotira, topshiriq taqsimoti', newAgent: 'Yangi agent', back: 'Orqaga',
       todo: 'Ro‘yxat', memory: 'Xotira', work: 'Ish', caps: 'Imkoniyatlar', settings: 'Sozlama',
@@ -28,6 +29,7 @@
       instr: 'Ko‘rsatma', save: 'Saqlash', saved: 'Saqlandi', del: 'Agentni o‘chirish', sure: 'Aniq o‘chiraman', remove: 'O‘chirish', netErr: 'Aloqa xatosi.',
     },
     ru: {
+      keysLink: 'Ключи ИИ',
       title: 'Агенты', sub: 'Главный агент DODA распределяет задания, ролевые агенты выполняют. У каждого свой список и память.',
       chief: 'Главный агент', chiefD: 'Общий список, память, распределение заданий', newAgent: 'Новый агент', back: 'Назад',
       todo: 'Список', memory: 'Память', work: 'Работа', caps: 'Возможности', settings: 'Настройки',
@@ -437,7 +439,7 @@
       go.disabled = false; go.textContent = tr('run'); go.classList.remove('busy');
       if (r.status === 201) { list = [r.data.run, ...list]; req.value = ''; paint(); } else {
         msg.textContent = errText(r);
-        if (r.data && r.data.error && r.data.error.code === 'api_key_required') msg.append(' ', h('button', { type: 'button', class: 'ag-lk', onclick: () => document.dispatchEvent(new CustomEvent('doda:open-keys')) }, 'AI kalitlari'));
+        if (r.data && r.data.error && r.data.error.code === 'api_key_required') msg.append(' ', h('button', { type: 'button', class: 'ag-lk', onclick: () => document.dispatchEvent(new CustomEvent('doda:open-keys')) }, tr('keysLink')));
       }
     });
     root.append(req, h('div', { class: 'ag-row' }, sel, h('span', { class: 'ag-seg' }, sgs), go), msg, h('h4', { class: 'ag-h4' }, tr('history')), runs);

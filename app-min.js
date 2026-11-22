@@ -9,7 +9,7 @@
   const T = {
     uz: {
       placeholder: 'DODAga yozing yoki gapiring…', send: 'Yuborish', stop: 'To‘xtatish', mic: 'Ovozli kiritish', micStop: 'Tinglashni to‘xtatish',
-      todayT: 'Bugun', tasksT: 'Vazifalar', agentsT: 'Agentlar', keysT: 'AI kalitlari', keyBannerT: 'Boshlash uchun o‘z AI kalitingizni ulang', keyBannerP: 'DODA sizning shaxsiy Anthropic (Claude), Google Gemini yoki OpenAI hisobingiz bilan ishlaydi: xarajat to‘g‘ridan-to‘g‘ri sizning hisobingizdan yechiladi.', keyBannerB: 'Kalit ulash', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
+      closeT: 'Yopish', todayT: 'Bugun', tasksT: 'Vazifalar', agentsT: 'Agentlar', keysT: 'AI kalitlari', keyBannerT: 'Boshlash uchun o‘z AI kalitingizni ulang', keyBannerP: 'DODA sizning shaxsiy Anthropic (Claude), Google Gemini yoki OpenAI hisobingiz bilan ishlaydi: xarajat to‘g‘ridan-to‘g‘ri sizning hisobingizdan yechiladi.', keyBannerB: 'Kalit ulash', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
       today: 'Bugun', yesterday: 'Kecha', week: 'Oxirgi 7 kun', older: 'Oldinroq', rename: 'Nomini o‘zgartirish', del: 'O‘chirish', delSure: 'Aniq o‘chiraman', more: 'Amallar',
       account: 'Akkaunt', language: 'Til', logout: 'Chiqish', sbOpen: 'Panelni ochish', sbClose: 'Panelni yopish',
       morning: 'Xayrli tong', day: 'Xayrli kun', evening: 'Xayrli kech', night: 'Xayrli tun', ask: 'Nima haqida gaplashamiz?',
@@ -28,7 +28,7 @@
     },
     ru: {
       placeholder: 'Напишите DODA или скажите…', send: 'Отправить', stop: 'Остановить', mic: 'Голосовой ввод', micStop: 'Остановить запись',
-      todayT: 'Сегодня', tasksT: 'Задачи', agentsT: 'Агенты', keysT: 'Ключи ИИ', keyBannerT: 'Чтобы начать, подключите свой ключ ИИ', keyBannerP: 'DODA работает с вашим личным аккаунтом Anthropic (Claude), Google Gemini или OpenAI: расходы списываются напрямую с вашего счёта.', keyBannerB: 'Подключить ключ', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
+      closeT: 'Закрыть', todayT: 'Сегодня', tasksT: 'Задачи', agentsT: 'Агенты', keysT: 'Ключи ИИ', keyBannerT: 'Чтобы начать, подключите свой ключ ИИ', keyBannerP: 'DODA работает с вашим личным аккаунтом Anthropic (Claude), Google Gemini или OpenAI: расходы списываются напрямую с вашего счёта.', keyBannerB: 'Подключить ключ', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
       today: 'Сегодня', yesterday: 'Вчера', week: 'Последние 7 дней', older: 'Ранее', rename: 'Переименовать', del: 'Удалить', delSure: 'Точно удалить', more: 'Действия',
       account: 'Аккаунт', language: 'Язык', logout: 'Выйти', sbOpen: 'Открыть панель', sbClose: 'Закрыть панель',
       morning: 'Доброе утро', day: 'Добрый день', evening: 'Добрый вечер', night: 'Доброй ночи', ask: 'О чём поговорим?',
@@ -316,7 +316,7 @@
     if (empty) { empty.querySelector('h1').textContent = greeting(); empty.querySelector('p').textContent = tr('ask'); }
     renderList(); renderAtts();
   }
-  document.addEventListener('doda:lang', () => { if (root) { relabel(); renderConsent(); } });
+  document.addEventListener('doda:lang', () => { if (root) { relabel(); renderConsent(); relangOverlay(); } });
 
   /* ---------- yon panel: suhbatlar ---------- */
   function toggleSearch() {
@@ -874,13 +874,37 @@
   function openOverlay(kind, opts) {
     const mod = OVERLAYS[kind] && OVERLAYS[kind]();
     if (files || !mod) return;
-    const title = kind === 'today' ? tr('todayT') : kind === 'tasks' ? tr('tasksT') : kind === 'agents' ? tr('agentsT') : kind === 'keys' ? tr('keysT') : tr('files');
     const body = h('div', { class: 'min-files-body' });
-    files = h('div', { class: 'min-files', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
-      h('div', { class: 'min-files-head' }, h('b', {}, title), h('button', { type: 'button', class: 'min-icon', 'aria-label': 'Yopish', onclick: () => closeFiles() }, svg(IC.x))), body);
+    const titleEl = h('b');
+    const closeBtn = h('button', { type: 'button', class: 'min-icon', onclick: () => closeFiles() }, svg(IC.x));
+    files = h('div', { class: 'min-files', role: 'dialog', 'aria-modal': 'true' }, h('div', { class: 'min-files-head' }, titleEl, closeBtn), body);
     files.dataset.kind = kind;
+    files._ui = { titleEl, closeBtn, body, opts };
+    overlayLabels();
+    previousFocus = document.activeElement;
     document.body.append(files);
     mod.mount(body, opts);
+    closeBtn.focus();
+  }
+  let previousFocus = null;
+  function overlayTitle(kind) { return kind === 'today' ? tr('todayT') : kind === 'tasks' ? tr('tasksT') : kind === 'agents' ? tr('agentsT') : kind === 'keys' ? tr('keysT') : tr('files'); }
+  function overlayLabels() {
+    if (!files) return;
+    const title = overlayTitle(files.dataset.kind);
+    files._ui.titleEl.textContent = title;
+    files.setAttribute('aria-label', title);
+    files._ui.closeBtn.setAttribute('aria-label', tr('closeT'));
+  }
+  /* Til almashganda ochiq oyna yangi tilda qayta chiziladi (saqlanmagan o'zgarish bo'lsa, faqat sarlavha yangilanadi) */
+  function relangOverlay() {
+    if (!files) return;
+    overlayLabels();
+    const kind = files.dataset.kind;
+    const mod = OVERLAYS[kind] && OVERLAYS[kind]();
+    if (!mod || (mod.isDirty && mod.isDirty())) return;
+    mod.unmount();
+    files._ui.body.replaceChildren();
+    mod.mount(files._ui.body, files._ui.opts);
   }
   function closeFiles(force) {
     if (!files) return;
@@ -891,6 +915,8 @@
       mod.unmount();
     }
     files.remove(); files = null;
+    if (previousFocus && document.contains(previousFocus)) previousFocus.focus();
+    previousFocus = null;
     if (kind0 === 'keys') refreshKeys();
   }
 

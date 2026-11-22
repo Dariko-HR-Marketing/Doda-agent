@@ -28,7 +28,7 @@
       sentTitle: 'Pochtangizni tekshiring', sentText: 'Tasdiqlash havolasi yuborildi. Xat kelmasa, “Spam” papkasini ham ko‘ring. Havola 24 soat amal qiladi.', back: 'Kirish sahifasiga qaytish',
       verifying: 'Pochta tasdiqlanmoqda…', verifiedTitle: 'Pochta tasdiqlandi', verifiedText: 'Endi tizimga kirishingiz mumkin.',
       offlineTitle: 'Server bilan aloqa yo‘q', offlineText: 'Hisob tizimi hozir ishlamayapti. Namuna rejimida davom etishingiz mumkin: ma’lumotlar faqat shu qurilmada qoladi.', demo: 'Namuna rejimida davom etish', retry: 'Qayta urinish',
-      account: 'Akkaunt', memoryOn: 'DODA suhbatlardan eslab qolsin va saqlangan ma’lumotdan foydalansin', memoryHint: 'Fayllarni “Bilim markazi” sahifasida ko‘rasiz va tahrirlaysiz.', voiceConsent: 'Ovoz yozuvlarini qayta ishlashga rozilik', logout: 'Chiqish', close: 'Yopish',
+      account: 'Akkaunt', memoryOn: 'DODA suhbatlardan eslab qolsin va saqlangan ma’lumotdan foydalansin', memoryHint: 'Fayllarni “Bilim markazi” sahifasida ko‘rasiz va tahrirlaysiz.', voiceConsent: 'Ovoz yozuvlarini qayta ishlashga rozilik', logout: 'Chiqish', export: 'Ma’lumotlarimni yuklab olish', close: 'Yopish',
       deleteTitle: 'Akkauntni o‘chirish', deleteText: 'Akkaunt va unga bog‘liq barcha ma’lumot butunlay o‘chiriladi. Buni qaytarib bo‘lmaydi.', deleteAck: 'Tushundim, o‘chirilsin', deleteBtn: 'Akkauntni o‘chirish',
       forgot: 'Parolni unutdingizmi?', forgotTitle: 'Parolni tiklash', forgotText: 'Pochtangizni kiriting: tiklash havolasini yuboramiz.', sendLink: 'Havola yuborish',
       sentResetText: 'Agar bu pochta ro‘yxatdan o‘tgan bo‘lsa, tiklash havolasi yuborildi. Havola 1 soat amal qiladi. Xat kelmasa, “Spam” papkasini ko‘ring.',
@@ -55,7 +55,7 @@
       sentTitle: 'Проверьте почту', sentText: 'Ссылка для подтверждения отправлена. Если письма нет, проверьте папку «Спам». Ссылка действует 24 часа.', back: 'Вернуться ко входу',
       verifying: 'Подтверждаем почту…', verifiedTitle: 'Почта подтверждена', verifiedText: 'Теперь вы можете войти в систему.',
       offlineTitle: 'Нет связи с сервером', offlineText: 'Система аккаунтов сейчас недоступна. Можно продолжить в демо-режиме: данные останутся только на этом устройстве.', demo: 'Продолжить в демо-режиме', retry: 'Повторить',
-      account: 'Аккаунт', memoryOn: 'DODA запоминает из диалогов и использует сохранённые данные', memoryHint: 'Файлы можно посмотреть и изменить в «Центре знаний».', voiceConsent: 'Согласие на обработку голосовых записей', logout: 'Выйти', close: 'Закрыть',
+      account: 'Аккаунт', memoryOn: 'DODA запоминает из диалогов и использует сохранённые данные', memoryHint: 'Файлы можно посмотреть и изменить в «Центре знаний».', voiceConsent: 'Согласие на обработку голосовых записей', logout: 'Выйти', export: 'Скачать мои данные', close: 'Закрыть',
       deleteTitle: 'Удаление аккаунта', deleteText: 'Аккаунт и все связанные данные будут удалены безвозвратно. Это действие нельзя отменить.', deleteAck: 'Понимаю, удалить', deleteBtn: 'Удалить аккаунт',
       forgot: 'Забыли пароль?', forgotTitle: 'Восстановление пароля', forgotText: 'Введите почту: мы отправим ссылку для восстановления.', sendLink: 'Отправить ссылку',
       sentResetText: 'Если эта почта зарегистрирована, ссылка для восстановления отправлена. Она действует 1 час. Если письма нет, проверьте папку «Спам».',
@@ -497,6 +497,14 @@
       h('p', { class: 'auth-p' }, tr('memoryHint')),
       h('label', { class: 'auth-check' }, voice, h('span', {}, tr('voiceConsent'))),
       h('div', { class: 'auth-actions' },
+        h('button', { class: 'auth-secondary', onclick: async () => {
+          const r = await api('/api/account/export');
+          if (r.status !== 200) { err.textContent = errText(r); return; }
+          const url = URL.createObjectURL(new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' }));
+          const a = h('a', { href: url, download: 'doda-ma-lumotlarim.json' });
+          document.body.append(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        } }, tr('export')),
         h('button', { class: 'auth-secondary', onclick: async () => { await api('/api/auth/logout', { method: 'POST', body: {} }); dlg.close(); setUser(null); showAuth('login', { notice: null }); } }, tr('logout'))),
       h('details', { class: 'auth-delete' }, h('summary', {}, tr('deleteTitle')), h('p', {}, tr('deleteText')),
         h('label', { class: 'auth-check' }, ack, h('span', {}, tr('deleteAck'))), err, del),

@@ -1,34 +1,37 @@
-# DODA — shaxsiy agent prototipi
+# DODA — agentlar uyushmasi
 
-O‘rtoq Kapitan uchun DODA shaxsiy agenti va DARIKO mutaxassis agentlarining interaktiv web prototipi.
+DODA — bosh agent va rol agentlaridan iborat shaxsiy yordamchilar tizimi: suhbat, xotira, vazifalar (to-do), mutaxassis agentlar. Uzbek (lotin) va rus tillarida. Hozir veb/PWA; keyin desktop va mobil.
 
-## Hozir ishlaydigan qismlar
+**Biznes qoidasi:** DODA platformasi bepul. AI xarajati har bir foydalanuvchining o'z hisobidan: u o'z Anthropic / Google Gemini / OpenAI API kalitini ulaydi (kalit AES-256-GCM bilan shifrlanadi).
 
-- DODA bilan suhbat va topshiriqni ajratish namoyishi.
-- Topshiriq pasporti, besh bosqichli yo‘l xaritasi va Kapitan qabuli namoyishi.
-- Hujjat va sifat, HR jarayonlari, marketing va tadqiqot agentlarining rol tavsiflari.
-- Brauzerda vazifalarni `localStorage`da, biriktirilgan fayllarni `IndexedDB`da saqlash.
-- Brauzer qo‘llab-quvvatlasa, `SpeechRecognition` orqali ilova ochiq paytda ovoz kiritishni sinash.
+## Tuzilma
 
-## Chegaralar
+| Qism | Joyi | Izoh |
+|---|---|---|
+| Frontend | repo ildizi (`index.html`, `*.js`, `*.css`) | Statik sayt, GitHub Pages: https://doda.tajriba24.uz |
+| PWA | `manifest.webmanifest`, `sw.js`, `pwa.js`, ikonlar | Ilova sifatida o'rnatiladi |
+| Backend | `server/` | Node 22, TypeScript, Hono, SQLite (WAL), Docker, Caddy ortida |
+| Deploy skriptlari | `server/deploy/` | `install.sh`, `set-key.sh`, `ensure-caddy.sh`, `smoke.sh` |
+| Hujjatlar | `docs/` | `texnik-qarorlar.md` (qarorlar jurnali), `deploy-server.md` |
 
-Bu versiya statik HTML/CSS/JavaScript prototipidir. AI modeli, server bazasi, haqiqiy agent ijrosi, ko‘p qurilmali sinxronlash, doimiy ovozli uyg‘otish va tashqi xizmatlarga amallar ulanmagan. Topshiriq bosqichlari qo‘lda o‘zgartiriladi. Brauzer ma’lumotlarini o‘chirish yoki boshqa qurilmaga o‘tish saqlangan namuna ishlarni yo‘qotishi mumkin.
+Frontend fayllari: `auth.js` (kirish, akkaunt, ma'lumot eksporti), `app-min.js` (asosiy interfeys, suhbat, ovoz), `workspace.js` (fayllar/xotira), `tasks.js` (topshiriq pasportlari), `agents.js` (agentlar, to-do, xotira, katalog), `today.js` ("Bugun"), `keys.js` (AI kalitlari).
 
-## Ishga tushirish
+## Ishlab chiqish
 
-`index.html` faylini brauzerda oching yoki katalogni oddiy statik web serverda xizmat qildiring. Serverda joylashtirishda shu katalogni saytning web ildizi sifatida tanlang; `index.html` asosiy sahifa bo‘ladi. HTTPS ishlating, ayniqsa mikrofon sinovi uchun.
+```bash
+cd server && npm ci
+npx tsc --noEmit && npx vitest run     # tiplar va testlar
+KEYS_SECRET=$(head -c 30 /dev/urandom | base64) npm run dev
+```
 
-## Fayllar
-
-- `index.html` — sahifalar va matnlar.
-- `app.css` — adaptiv dizayn va animatsiyalar.
-- `app.js` — prototip interaksiyalari va brauzer ichidagi saqlash.
-
-Bu repozitoriy loyihaning yagona manbasi: barcha kod va dizayn o‘zgarishlari shu yerda, Claude Code orqali amalga oshiriladi. `main` tarmog‘iga tushgan o‘zgarishlar avtomatik deploy qilinadi.
+Frontend'ni `python3 -m http.server 8080` bilan oching; `localhost` da API `http://localhost:8787` ga ulanadi.
 
 ## Deploy
 
-- Jonli sayt: https://doda.tajriba24.uz
-- Hosting: GitHub Pages (VPS ishlatilmaydi, boshqa loyihalarga ta'sir qilmaydi).
-- `main` tarmog'iga push qilinganda `.github/workflows/deploy.yml` saytni avtomat joylaydi.
-- Domen: Eskiz DNS'da `doda` uchun `CNAME → dariko-hr-marketing.github.io.`
+`main` ga tushgan o'zgarish avtomatik: frontend → GitHub Pages, server → CI (test). Serverni VPS'ga o'zingiz joylaysiz — qadamlar `docs/deploy-server.md` da. Ma'lumot eksporti, kunlik zaxira nusxa va `smoke.sh` tekshiruvi tayyor.
+
+## Muhim qoidalar
+
+- Foydalanuvchi ma'lumoti va AI kalitlari repoga kirmaydi; `server/.env` va `KEYS_SECRET` zaxirada saqlansin (yo'qolsa saqlangan kalitlar ochilmaydi).
+- Agentlar bir-birining xotirasi, vazifasi va fayllarini ko'rmaydi.
+- Barcha qarorlar `docs/texnik-qarorlar.md` da.

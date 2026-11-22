@@ -1,6 +1,24 @@
+:root{font-family:Manrope,system-ui,sans-serif;color:#ecf6fa;background:#061528;--bg:#061528;--panel:#0c2437;--muted:#9db5c4;--line:#274557;--green:#55df80;--pale:#ccfbd8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 52% -16%,#123e4b 0,transparent 38%),#061528}
+button,input,textarea,select{font:inherit}button{cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid #8df5a2;outline-offset:3px}
+button:disabled{cursor:not-allowed;opacity:.5}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.section-kicker{color:#70df95;font-size:10px;letter-spacing:.15em;font-weight:800}
+.glass{border:1px solid #244a58;background:linear-gradient(145deg,#102e40,#0b2436 70%,#092133);border-radius:18px;box-shadow:0 17px 45px #00101e28}
+.modal{border:1px solid #41745e;border-radius:18px;background:#0e2a3b;color:#e9faf0;padding:18px;width:min(620px,calc(100% - 22px));max-height:90vh;overflow:auto;box-shadow:0 30px 100px #0009}
+.modal::backdrop{background:#020d1bba;backdrop-filter:blur(5px)}
+.modal-head{display:flex;justify-content:space-between;align-items:start}
+.modal h2{font-size:20px;margin:7px 0}
+.modal p{font-size:12px;color:#aec7cd;line-height:1.65}
+.modal label{display:block;color:#b4d4d1;font-weight:700;margin:16px 0;font-size:14px}
+.modal input,.modal textarea,.modal select{display:block;width:100%;background:#061f2f;border:1px solid #3b6170;border-radius:9px;color:#f2fffb;padding:11px 12px;margin-top:7px;font-size:14px;min-height:43px}
+.modal textarea{min-height:80px;resize:vertical}
+.close-button{background:#163c48;border:1px solid #3b6571;color:#d6eef0;border-radius:9px;font-size:20px;width:32px;height:32px}
+.small-modal{width:min(470px,calc(100% - 22px))}
 /* DODA: chat interfeysi (yon panel + markaziy suhbat) */
 body.min-on{overflow:hidden}
-.min-on .shell,.min-on .mobile-nav{display:none!important}
 .min{position:fixed;inset:0;z-index:10;display:grid;grid-template-columns:0 minmax(0,1fr);color:#e8f4f7;background:radial-gradient(ellipse 70% 40% at 55% -8%,#123e4b 0,transparent 60%),#061528;font-family:Manrope,system-ui,sans-serif}
 .min.sb-open{grid-template-columns:288px minmax(0,1fr)}
 .min button{font-family:inherit;-webkit-tap-highlight-color:transparent}

@@ -89,7 +89,15 @@ export function createApp(input: Deps): Hono<Env> {
     await next();
   });
 
-  app.get("/api/health", (c) => c.json({ ok: true, version: "0.1.0" }));
+  app.get("/api/health", (c) => {
+    try {
+      const { user_version } = deps.db.prepare("PRAGMA user_version").get() as { user_version: number };
+      deps.db.prepare("SELECT 1").get();
+      return c.json({ ok: true, version: "0.1.0", schema: user_version });
+    } catch {
+      return c.json({ ok: false }, 503);
+    }
+  });
   app.route("/api/auth", authRoutes);
   app.route("/api/auth/google", googleRoutes);
   app.route("/api/account", accountRoutes);
