@@ -6,7 +6,7 @@
   const lang = () => (D().getLang ? D().getLang() : 'uz');
   const T = {
     uz: {
-      keysLink: 'AI kalitlari',
+      keysLink: 'AI kalitlari', editHint: 'Tahrirlash: ikki marta bosing yoki Enter',
       title: 'Agentlar', sub: 'Bosh agent DODA topshiriqni taqsimlaydi, rol agentlar bajaradi. Har birining o‘z ro‘yxati va xotirasi bor.',
       chief: 'Bosh agent', chiefD: 'Umumiy ro‘yxat, xotira, topshiriq taqsimoti', newAgent: 'Yangi agent', back: 'Orqaga',
       todo: 'Ro‘yxat', memory: 'Xotira', work: 'Ish', caps: 'Imkoniyatlar', settings: 'Sozlama',
@@ -29,7 +29,7 @@
       instr: 'Ko‘rsatma', save: 'Saqlash', saved: 'Saqlandi', del: 'Agentni o‘chirish', sure: 'Aniq o‘chiraman', remove: 'O‘chirish', netErr: 'Aloqa xatosi.',
     },
     ru: {
-      keysLink: 'Ключи ИИ',
+      keysLink: 'Ключи ИИ', editHint: 'Изменить: двойной клик или Enter',
       title: 'Агенты', sub: 'Главный агент DODA распределяет задания, ролевые агенты выполняют. У каждого свой список и память.',
       chief: 'Главный агент', chiefD: 'Общий список, память, распределение заданий', newAgent: 'Новый агент', back: 'Назад',
       todo: 'Список', memory: 'Память', work: 'Работа', caps: 'Возможности', settings: 'Настройки',
@@ -185,7 +185,24 @@
         }
         const now = todayStr();
         const dueBadge = t.due ? h('i', { class: 'ag-due' + (!t.done && t.due < now ? ' late' : t.due === now ? ' today' : '') }, (t.repeat !== 'none' ? '↻ ' : '') + (t.due === now ? tr('dToday') : t.due < now && !t.done ? tr('dLate') + ' · ' + shortDate(t.due) : shortDate(t.due))) : null;
-        const li = h('li', { class: 'ag-td' + (t.done ? ' done' : '') + (t.id === animateId ? ' in' : '') }, cb, h('span', { class: 'ag-td-t' }, t.text), dueBadge, assign, st, rm);
+        const label = h('span', { class: 'ag-td-t', tabindex: '0', title: tr('editHint') }, t.text);
+        const startEdit = () => {
+          if (t.done) return;
+          const ed = h('input', { class: 'ag-in ag-edit', maxlength: '300', value: t.text, 'aria-label': tr('editHint') });
+          let fin = false;
+          const finish = async (save) => {
+            if (fin) return; fin = true;
+            const v = ed.value.trim();
+            if (save && v && v !== t.text) { const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { text: v } }); if (r.status === 200) { todos = r.data.todos; } }
+            render();
+          };
+          ed.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { e.stopPropagation(); finish(false); } });
+          ed.addEventListener('blur', () => finish(true));
+          label.replaceWith(ed); ed.focus(); ed.select();
+        };
+        label.addEventListener('dblclick', startEdit);
+        label.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); startEdit(); } });
+        const li = h('li', { class: 'ag-td' + (t.done ? ' done' : '') + (t.id === animateId ? ' in' : '') }, cb, label, dueBadge, assign, st, rm);
         cb.addEventListener('click', async () => { li.classList.toggle('done'); const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { done: !t.done, today: todayStr() } }); if (r.status === 200) { todos = r.data.todos; setTimeout(() => render(), 220); } });
         st.addEventListener('click', async () => { const r = await api('/api/todos/' + t.id, { method: 'PATCH', body: { priority: !t.priority } }); if (r.status === 200) { todos = r.data.todos; render(); } });
         rm.addEventListener('click', async () => { li.classList.add('out'); const r = await api('/api/todos/' + t.id, { method: 'DELETE' }); if (r.status === 200) { todos = r.data.todos; setTimeout(() => render(), 180); } });
