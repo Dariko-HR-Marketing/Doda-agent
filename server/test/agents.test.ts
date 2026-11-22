@@ -125,6 +125,11 @@ describe("agentlar", () => {
     const hist = (await (await req(`/api/agents/${a.id}/runs`, "GET", undefined, c)).json()).runs;
     expect(hist).toHaveLength(1);
     expect((await (await req("/api/usage", "GET", undefined, c)).json()).tokensIn).toBe(200);
+    // agent kartasida shu oy ishlari soni va sarfi
+    const card = (await (await req("/api/agents", "GET", undefined, c)).json()).agents.find((x: any) => x.id === a.id);
+    expect(card.runsMonth).toBe(1);
+    expect(card.costMonthUsd).toBeGreaterThan(0);
+    expect(card.costMonthUsd).toBeCloseTo(run.costUsd, 8);
   });
 
   it("izolyatsiya: agent suhbat tarixi va xotirani ko'rmaydi; faqat brief", async () => {

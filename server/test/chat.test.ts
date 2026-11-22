@@ -123,6 +123,25 @@ describe("suhbat", () => {
     expect(detail.messages).toHaveLength(2);
   });
 
+  it("qayta yaratish: eski javob almashadi, savol takrorlanmaydi, boshqa foydalanuvchiniki mumkin emas", async () => {
+    const cookie = await signup("a@example.com");
+    const { events } = await chat(cookie, "Salom DODA");
+    const convId = events[0]!.data.conversationId;
+    const res = await json("/api/chat", { conversationId: convId, regenerate: true }, { cookie });
+    expect(res.status).toBe(200);
+    expect(parseSse(await res.text()).map((e) => e.event)).toContain("done");
+    const msgs = db.prepare("SELECT role, content FROM messages ORDER BY id").all();
+    expect(msgs).toEqual([
+      { role: "user", content: "Salom DODA" },
+      { role: "assistant", content: "Salom, dunyo" },
+    ]);
+    expect((db.prepare("SELECT COUNT(*) n FROM usage").get() as any).n).toBe(2); // ikkinchi so'rov ham hisobga olinadi
+    // suhbatsiz yoki begona suhbat
+    expect((await json("/api/chat", { regenerate: true }, { cookie })).status).toBe(400);
+    const other = await signup("b@example.com");
+    expect((await json("/api/chat", { conversationId: convId, regenerate: true }, { cookie: other })).status).toBe(404);
+  });
+
   it("tarix keyingi so'rovga yuboriladi (xotira) va tizim ko'rsatmasi foydalanuvchi tilida", async () => {
     const cookie = await signup("a@example.com");
     const first = await chat(cookie, "Mening ismim Hikmatullo");

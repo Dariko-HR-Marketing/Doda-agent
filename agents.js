@@ -6,7 +6,7 @@
   const lang = () => (D().getLang ? D().getLang() : 'uz');
   const T = {
     uz: {
-      keysLink: 'AI kalitlari', editHint: 'Tahrirlash: ikki marta bosing yoki Enter',
+      keysLink: 'AI kalitlari', runsMo: 'ish', spendHint: 'Shu oy: ishlar soni va sizning AI hisobingizdan sarf', editHint: 'Tahrirlash: ikki marta bosing yoki Enter',
       title: 'Agentlar', sub: 'Bosh agent DODA topshiriqni taqsimlaydi, rol agentlar bajaradi. Har birining o‘z ro‘yxati va xotirasi bor.',
       chief: 'Bosh agent', chiefD: 'Umumiy ro‘yxat, xotira, topshiriq taqsimoti', newAgent: 'Yangi agent', back: 'Orqaga',
       todo: 'Ro‘yxat', memory: 'Xotira', work: 'Ish', caps: 'Imkoniyatlar', settings: 'Sozlama',
@@ -29,7 +29,7 @@
       instr: 'Ko‘rsatma', save: 'Saqlash', saved: 'Saqlandi', del: 'Agentni o‘chirish', sure: 'Aniq o‘chiraman', remove: 'O‘chirish', netErr: 'Aloqa xatosi.',
     },
     ru: {
-      keysLink: 'Ключи ИИ', editHint: 'Изменить: двойной клик или Enter',
+      keysLink: 'Ключи ИИ', runsMo: 'задач', spendHint: 'В этом месяце: число задач и расход с вашего ИИ-аккаунта', editHint: 'Изменить: двойной клик или Enter',
       title: 'Агенты', sub: 'Главный агент DODA распределяет задания, ролевые агенты выполняют. У каждого свой список и память.',
       chief: 'Главный агент', chiefD: 'Общий список, память, распределение заданий', newAgent: 'Новый агент', back: 'Назад',
       todo: 'Список', memory: 'Память', work: 'Работа', caps: 'Возможности', settings: 'Настройки',
@@ -305,7 +305,7 @@
       h('span', { class: 'ag-chips' }, h('i', { class: 'ag-chip' }, `${dodaOpen} ${tr('open')}`)));
     const cards = agents.map((a) => h('button', { type: 'button', class: 'ag-card', 'data-st': '1', onclick: () => agentPage(a) },
       h('span', { class: 'ag-dot' }), h('b', {}, a.name), h('span', { class: 'ag-role' }, a.role),
-      h('span', { class: 'ag-chips' }, h('i', { class: 'ag-chip' }, `${a.openTodos} ${tr('open')}`), h('i', { class: 'ag-chip' }, `${a.memoryCount} ${tr('mem')}`), h('i', { class: 'ag-chip' }, `${a.capabilities.length + a.custom.length} ✓`))));
+      h('span', { class: 'ag-chips' }, h('i', { class: 'ag-chip' }, `${a.openTodos} ${tr('open')}`), h('i', { class: 'ag-chip' }, `${a.memoryCount} ${tr('mem')}`), h('i', { class: 'ag-chip' }, `${a.capabilities.length + a.custom.length} ✓`), a.runsMonth ? h('i', { class: 'ag-chip', title: tr('spendHint') }, `${a.runsMonth} ${tr('runsMo')} · $${a.costMonthUsd.toFixed(a.costMonthUsd < 0.01 ? 4 : 2)}`) : null)));
     cards.push(h('button', { type: 'button', class: 'ag-card new', 'data-st': '1', onclick: wizard }, svg(I.plus, 22), h('b', {}, tr('newAgent'))));
     view(h('div', { class: 'ag' }, h('p', { class: 'ag-sub' }, tr('sub')), routeBox(agents), chief, h('div', { class: 'ag-grid' }, cards), agents.length ? null : h('p', { class: 'ag-muted' }, tr('none'))));
   }

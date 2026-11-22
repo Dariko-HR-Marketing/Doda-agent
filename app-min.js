@@ -18,7 +18,7 @@
       attach: 'Fayl biriktirish', attachHint: 'Matnli fayllar: .txt .md .csv .json', removeAtt: 'Olib tashlash', file: 'Fayl',
       attOnly: 'Shu faylni ko‘rib chiqing.', fileBig: 'Fayl juda katta (har biri 12 000 belgigacha, jami 16 000).', binary: 'Hozircha faqat matnli fayllar qo‘llanadi.', tooMany: 'Ko‘pi bilan 3 ta fayl.',
       model: 'Model', auto: 'Avto', autoD: 'DODA o‘zi tanlaydi (tejamkor)', fast: 'Tez', fastD: 'Tez va arzon model: oddiy savollar uchun', smart: 'Aqlli', smartD: 'Kuchli model: murakkab ishlar uchun',
-      copy: 'Nusxa olish', copied: 'Nusxalandi',
+      copy: 'Nusxa olish', regen: 'Qayta yaratish', copied: 'Nusxalandi',
       note: 'DODA xato qilishi mumkin. Matn va ovoz yozuvi AI xizmatiga (Google Gemini, Anthropic Claude yoki OpenAI) yuboriladi: maxfiy ma’lumot yozmang.',
       consentTitle: 'Ovozli kiritish',
       consentText: 'Gapirganingizda ovoz yozib olinadi va matnga aylantirish uchun AI xizmatiga (Google Gemini yoki OpenAI) yuboriladi. Ovoz yozuvi DODA serverida saqlanmaydi. Bunga roziligingiz kerak (keyin akkauntda o‘chira olasiz).',
@@ -37,7 +37,7 @@
       attach: 'Прикрепить файл', attachHint: 'Текстовые файлы: .txt .md .csv .json', removeAtt: 'Убрать', file: 'Файл',
       attOnly: 'Посмотрите этот файл.', fileBig: 'Файл слишком большой (до 12 000 символов каждый, всего 16 000).', binary: 'Пока поддерживаются только текстовые файлы.', tooMany: 'Не более 3 файлов.',
       model: 'Модель', auto: 'Авто', autoD: 'DODA выбирает сама (экономно)', fast: 'Быстро', fastD: 'Быстрая и дешёвая модель: для простых вопросов', smart: 'Умно', smartD: 'Мощная модель: для сложных задач',
-      copy: 'Копировать', copied: 'Скопировано',
+      copy: 'Копировать', regen: 'Сгенерировать заново', copied: 'Скопировано',
       note: 'DODA может ошибаться. Текст и запись голоса отправляются в ИИ-сервис (Google Gemini, Anthropic Claude или OpenAI): не пишите конфиденциальное.',
       consentTitle: 'Голосовой ввод',
       consentText: 'При разговоре голос записывается и отправляется в ИИ-сервис (Google Gemini или OpenAI) для преобразования в текст. Запись не сохраняется на сервере DODA. Для этого нужно ваше согласие (позже можно отключить в аккаунте).',
@@ -85,6 +85,7 @@
     sun: ['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M12 2v2', 'M12 20v2', 'M2 12h2', 'M20 12h2', 'M5 5l1.5 1.5', 'M17.5 17.5L19 19', 'M19 5l-1.5 1.5', 'M6.5 17.5L5 19'],
     tasks: ['M4 6l2 2 3-3', 'M12 7h8', 'M4 14l2 2 3-3', 'M12 15h8'],
     copy: ['M9 9h10v10H9z', 'M5 15V5h10'],
+    redo: ['M20 11a8 8 0 1 0-2.3 5.7', 'M20 4v7h-7'],
     check: ['M5 12l5 5 9-10'],
     more: ['M5 12h.01', 'M12 12h.01', 'M19 12h.01'],
     chevron: ['M6 9l6 6 6-6'],
@@ -476,14 +477,16 @@
     const body = h('div', { class: 'min-text' });
     const meta = h('span', { class: 'min-meta' });
     const copyBtn = h('button', { type: 'button', class: 'min-copy', title: tr('copy'), 'aria-label': tr('copy') }, svg(IC.copy, 16));
-    const actions = h('div', { class: 'min-actions', hidden: true }, copyBtn, meta);
+    const regenBtn = h('button', { type: 'button', class: 'min-copy min-regen', title: tr('regen'), 'aria-label': tr('regen'), hidden: true, onclick: () => { if (!busy && convId) send('', true); } }, svg(IC.redo, 16));
+    const actions = h('div', { class: 'min-actions', hidden: true }, copyBtn, regenBtn, meta);
     const el = h('div', { class: 'min-msg doda' }, body, actions);
     el._raw = text;
     copyBtn.addEventListener('click', () => copyText(el._raw, copyBtn));
     if (text) { renderMd(body, text); actions.hidden = false; }
     ui.col.append(el); scrollDown();
-    return { el, body, meta, actions };
+    return { el, body, meta, actions, regenBtn };
   }
+  const showOnlyLastRegen = () => { const all = ui.col.querySelectorAll('.min-regen'); all.forEach((b, i) => { b.hidden = i !== all.length - 1; }); };
 
   async function loadHistory() {
     let id = null;
@@ -501,6 +504,7 @@
     convId = id; saveConv();
     ui.col.replaceChildren(); setEmptyMode(false);
     for (const m of r.data.messages) (m.role === 'user' ? addUser(m.content) : addDoda(m.content));
+    showOnlyLastRegen();
     renderList(); scrollDown(true);
     if (isMobile()) setSidebar(false, true);
   }
@@ -603,8 +607,9 @@
     el.append(chip); scrollDown();
   }
 
-  async function send(text) {
-    addUser(text);
+  async function send(text, regen) {
+    if (regen) { const last = [...ui.col.querySelectorAll('.min-msg.doda')].pop(); if (last) last.remove(); } else addUser(text);
+    ui.col.querySelectorAll('.min-regen').forEach((b) => { b.hidden = true; });
     const reply = addDoda();
     reply.el.classList.add('typing');
     setBusy(true);
@@ -615,7 +620,7 @@
       const res = await fetch(D().API + '/api/chat', {
         method: 'POST', credentials: 'include', signal: abortCtl.signal,
         headers: { 'Content-Type': 'application/json', 'Accept-Language': lang() },
-        body: JSON.stringify({ message: text, tier, ...(convId ? { conversationId: convId } : {}) }),
+        body: JSON.stringify(regen ? { regenerate: true, tier, conversationId: convId } : { message: text, tier, ...(convId ? { conversationId: convId } : {}) }),
       });
       if (!res.ok || !(res.headers.get('content-type') || '').includes('text/event-stream')) {
         const j = await res.json().catch(() => ({}));
@@ -639,7 +644,7 @@
             reply.meta.textContent = `${LABEL[model] || model} · $${data.costUsd.toFixed(4)}` + (frac >= 0.8 ? ` · ${tr('limit')}: $${data.monthUsd.toFixed(2)} / $${data.budgetUsd}` : '');
             setBusy(false);
             refreshListSoon();
-            suggestAgent(text, reply.el);
+            if (!regen) suggestAgent(text, reply.el);
           } else if (event === 'memory') {
             reply.el.append(h('div', { class: 'min-mem' }, tr('remembered') + data.facts.join('; '))); scrollDown();
             document.dispatchEvent(new CustomEvent('doda:memory'));
@@ -652,6 +657,7 @@
     }
     if (raf) cancelAnimationFrame(raf);
     if (full) { renderMd(reply.body, full); reply.actions.hidden = false; }
+    showOnlyLastRegen();
     reply.el.classList.remove('typing');
     abortCtl = null;
     setBusy(false);

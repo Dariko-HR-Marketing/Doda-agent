@@ -24,7 +24,9 @@ export const ATTACH_MARK = "\n\n---\n[Biriktirilgan fayl:";
 
 const chatSchema = z.object({
   conversationId: z.uuid().optional(),
-  message: z.string().trim().min(1).max(20_000),
+  message: z.string().trim().min(1).max(20_000).optional(),
+  /** true: oxirgi javobni o'chirib, shu savolga qaytadan javob oladi (yangi xabar qo'shilmaydi) */
+  regenerate: z.boolean().default(false),
   /** auto = DODA o'zi tanlaydi (tejamkor); light = tez/arzon; main = aqlli */
   tier: z.enum(["auto", "light", "main"]).default("auto"),
 });
@@ -54,7 +56,9 @@ chatRoutes.post("/chat", async (c) => {
 
   const body = chatSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return fail(c, 400, "invalid_input");
-  const { message } = body.data;
+  if (!body.data.regenerate && !body.data.message) return fail(c, 400, "invalid_input");
+  if (body.data.regenerate && !body.data.conversationId) return fail(c, 400, "invalid_input");
+  let message = body.data.message ?? "";
 
   // Byudjet faqat server kalitida cheklanadi; foydalanuvchining o'z kaliti o'z hisobidan ishlaydi
   if (!own && sharedSpendUsd(db, user.id, now()) >= config.MONTHLY_BUDGET_USD) return fail(c, 429, "budget_exceeded");
@@ -72,7 +76,15 @@ chatRoutes.post("/chat", async (c) => {
   }
   const conversationId = convId;
 
-  db.prepare("INSERT INTO messages (conversation_id, role, content, created_at) VALUES (?,?,?,?)").run(conversationId, "user", message, now());
+  if (body.data.regenerate) {
+    const last = db.prepare("SELECT id, role, content FROM messages WHERE conversation_id = ? ORDER BY id DESC LIMIT 2").all(conversationId) as Array<{ id: number; role: string; content: string }>;
+    const q = last.find((m) => m.role === "user");
+    if (!q) return fail(c, 400, "invalid_input");
+    if (last[0]!.role === "assistant") db.prepare("DELETE FROM messages WHERE id = ?").run(last[0]!.id);
+    message = q.content;
+  } else {
+    db.prepare("INSERT INTO messages (conversation_id, role, content, created_at) VALUES (?,?,?,?)").run(conversationId, "user", message, now());
+  }
 
   const rows = db
     .prepare("SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY id DESC LIMIT ?")
@@ -158,7 +170,7 @@ chatRoutes.post("/chat", async (c) => {
         });
 
         // Xotira: faqat shaxsiy/doimiy ma'lumotga o'xshash xabarlar uchun, arzon modelda, javobdan KEYIN
-        if (user.memoryEnabled && maybeMemorable(message) && !controller.signal.aborted) {
+        if (user.memoryEnabled && !body.data.regenerate && maybeMemorable(message) && !controller.signal.aborted) {
           try {
             const lightChain = chainFor({ llm, legacy: legacyChain(config) }, "light");
             let memModel = lightChain[0]!;

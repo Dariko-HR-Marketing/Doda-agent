@@ -7,6 +7,7 @@ import { fail, type Env } from "../http.js";
 import { recordUsage, sharedSpendUsd } from "../usage.js";
 import { ChainError, chainFor, legacyChain, runChain } from "../llm/multi.js";
 import { requireAuth } from "../session.js";
+import { monthStartUtc } from "../usage.js";
 import { routeRequest } from "../agentRouter.js";
 import { catalogFor, localized, recommendedIds, selectableIds, suggestTemplate, type CatItem } from "../catalog.js";
 import { isSensitive } from "../memory.js";
@@ -41,7 +42,11 @@ const view = (a: AgentRow, extra: object = {}) => ({
   capabilities: parse<string[]>(a.capabilities, []), custom: parse<Array<{ group: string; text: string }>>(a.custom_items, []), ...extra,
 });
 const owned = (db: Db, userId: string, id: string) => db.prepare("SELECT * FROM agents WHERE id = ? AND user_id = ?").get(id, userId) as AgentRow | undefined;
-const counts = (db: Db, userId: string, id: string) => ({
+const counts = (db: Db, userId: string, id: string, now: number) => ({
+  ...(() => {
+    const r = db.prepare("SELECT COUNT(*) n, COALESCE(SUM(cost_usd),0) usd FROM agent_runs WHERE agent_id = ? AND user_id = ? AND created_at >= ?").get(id, userId, monthStartUtc(now)) as { n: number; usd: number };
+    return { runsMonth: r.n, costMonthUsd: r.usd };
+  })(),
   openTodos: (db.prepare("SELECT COUNT(*) n FROM todos WHERE user_id = ? AND agent_id = ? AND done = 0").get(userId, id) as { n: number }).n,
   memoryCount: (db.prepare("SELECT COUNT(*) n FROM agent_memory WHERE agent_id = ?").get(id) as { n: number }).n,
 });
@@ -54,11 +59,11 @@ function checkCaps(template: string | null, ids: string[]): boolean {
 }
 
 agentRoutes.get("/", (c) => {
-  const { db } = c.get("deps");
+  const { db, now } = c.get("deps");
   const user = c.get("user")!;
   const rows = db.prepare("SELECT * FROM agents WHERE user_id = ? ORDER BY created_at").all(user.id) as AgentRow[];
   return c.json({
-    agents: rows.map((r) => view(r, counts(db, user.id, r.id))),
+    agents: rows.map((r) => view(r, counts(db, user.id, r.id, now()))),
     templates: TEMPLATES.map((t) => ({ id: t.id, uz: t.uz, ru: t.ru })),
   });
 });
@@ -110,11 +115,11 @@ agentRoutes.post("/", async (c) => {
   db.prepare("INSERT INTO agents (id, user_id, template, name, role, instructions, capabilities, custom_items, created_at) VALUES (?,?,?,?,?,?,?,?,?)").run(
     id, user.id, rec.template, rec.name, rec.role, rec.instructions, JSON.stringify(caps), JSON.stringify(custom), now(),
   );
-  return c.json({ agent: view(owned(db, user.id, id)!, counts(db, user.id, id)) }, 201);
+  return c.json({ agent: view(owned(db, user.id, id)!, counts(db, user.id, id, now())) }, 201);
 });
 
 agentRoutes.patch("/:id", async (c) => {
-  const { db } = c.get("deps");
+  const { db, now } = c.get("deps");
   const user = c.get("user")!;
   const a = owned(db, user.id, c.req.param("id"));
   if (!a) return fail(c, 404, "not_found");
@@ -127,7 +132,7 @@ agentRoutes.patch("/:id", async (c) => {
     d.name ?? a.name, d.role ?? a.role, d.instructions ?? a.instructions,
     d.capabilities ? JSON.stringify(d.capabilities) : a.capabilities, d.custom ? JSON.stringify(d.custom) : a.custom_items, a.id,
   );
-  return c.json({ agent: view(owned(db, user.id, a.id)!, counts(db, user.id, a.id)) });
+  return c.json({ agent: view(owned(db, user.id, a.id)!, counts(db, user.id, a.id, now())) });
 });
 
 /** Agentning shaxsiy xotirasi */

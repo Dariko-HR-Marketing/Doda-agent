@@ -44,3 +44,5 @@
 | 34 | Health va smoke | `/api/health` bazani tekshiradi (503 xatoda) va sxema versiyasini qaytaradi. `server/deploy/smoke.sh` deploydan keyingi tekshiruv. |
 | 35 | Til almashinuvi | Ochiq oyna (Bugun/Agentlar/...) til o'zgarganda qayta chiziladi (saqlanmagan o'zgarish bo'lsa faqat sarlavha). Oyna yopilganda fokus qaytadi. |
 | 36 | DODA chatda agent taklifi | Javob tugagach (≥25 belgili so'rov) `/api/agents/route` chaqiriladi; faqat `confidence: high` bo'lsa javob ostida "Agentga o'tish" taklifi chiqadi (AI siz, qo'shimcha xarajatsiz). Bosilsa agent sahifasi "Ish" tabida so'rov oldindan yozilgan holda ochiladi. To-do matni joyida tahrirlanadi (ikki marta bosish/Enter). |
+| 37 | Qayta yaratish | `POST /api/chat` `{conversationId, regenerate: true}`: oxirgi javob o'chiriladi, oxirgi savolga yangi javob olinadi; savol takrorlanmaydi, xotira qayta ajratilmaydi, sarf hisobga olinadi. Tugma faqat oxirgi javobda. |
+| 38 | Agent sarfi | `GET /api/agents` har agent uchun `runsMonth` va `costMonthUsd` (shu UTC oy, `agent_runs` bo'yicha) qaytaradi; agent kartasida chip. |
