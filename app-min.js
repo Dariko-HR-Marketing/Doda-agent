@@ -9,7 +9,7 @@
   const T = {
     uz: {
       placeholder: 'DODAga yozing yoki gapiring…', send: 'Yuborish', stop: 'To‘xtatish', mic: 'Ovozli kiritish', micStop: 'Tinglashni to‘xtatish',
-      closeT: 'Yopish', todayT: 'Bugun', tasksT: 'Vazifalar', agentsT: 'Agentlar', keysT: 'AI kalitlari', keyBannerT: 'Boshlash uchun o‘z AI kalitingizni ulang', keyBannerP: 'DODA sizning shaxsiy Anthropic (Claude), Google Gemini yoki OpenAI hisobingiz bilan ishlaydi: xarajat to‘g‘ridan-to‘g‘ri sizning hisobingizdan yechiladi.', keyBannerB: 'Kalit ulash', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
+      closeT: 'Yopish', sugFor: 'Bu ish uchun mos agent:', sugGo: 'Agentga o‘tish', todayT: 'Bugun', tasksT: 'Vazifalar', agentsT: 'Agentlar', keysT: 'AI kalitlari', keyBannerT: 'Boshlash uchun o‘z AI kalitingizni ulang', keyBannerP: 'DODA sizning shaxsiy Anthropic (Claude), Google Gemini yoki OpenAI hisobingiz bilan ishlaydi: xarajat to‘g‘ridan-to‘g‘ri sizning hisobingizdan yechiladi.', keyBannerB: 'Kalit ulash', newChat: 'Yangi suhbat', search: 'Qidiruv', searchPh: 'Suhbatlardan qidirish…', files: 'Fayllar va xotira', chats: 'Suhbatlar', noChats: 'Hali suhbat yo‘q', noMatch: 'Hech narsa topilmadi',
       today: 'Bugun', yesterday: 'Kecha', week: 'Oxirgi 7 kun', older: 'Oldinroq', rename: 'Nomini o‘zgartirish', del: 'O‘chirish', delSure: 'Aniq o‘chiraman', more: 'Amallar',
       account: 'Akkaunt', language: 'Til', logout: 'Chiqish', sbOpen: 'Panelni ochish', sbClose: 'Panelni yopish',
       morning: 'Xayrli tong', day: 'Xayrli kun', evening: 'Xayrli kech', night: 'Xayrli tun', ask: 'Nima haqida gaplashamiz?',
@@ -28,7 +28,7 @@
     },
     ru: {
       placeholder: 'Напишите DODA или скажите…', send: 'Отправить', stop: 'Остановить', mic: 'Голосовой ввод', micStop: 'Остановить запись',
-      closeT: 'Закрыть', todayT: 'Сегодня', tasksT: 'Задачи', agentsT: 'Агенты', keysT: 'Ключи ИИ', keyBannerT: 'Чтобы начать, подключите свой ключ ИИ', keyBannerP: 'DODA работает с вашим личным аккаунтом Anthropic (Claude), Google Gemini или OpenAI: расходы списываются напрямую с вашего счёта.', keyBannerB: 'Подключить ключ', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
+      closeT: 'Закрыть', sugFor: 'Подходящий агент для этой задачи:', sugGo: 'Перейти к агенту', todayT: 'Сегодня', tasksT: 'Задачи', agentsT: 'Агенты', keysT: 'Ключи ИИ', keyBannerT: 'Чтобы начать, подключите свой ключ ИИ', keyBannerP: 'DODA работает с вашим личным аккаунтом Anthropic (Claude), Google Gemini или OpenAI: расходы списываются напрямую с вашего счёта.', keyBannerB: 'Подключить ключ', newChat: 'Новый диалог', search: 'Поиск', searchPh: 'Поиск по диалогам…', files: 'Файлы и память', chats: 'Диалоги', noChats: 'Пока нет диалогов', noMatch: 'Ничего не найдено',
       today: 'Сегодня', yesterday: 'Вчера', week: 'Последние 7 дней', older: 'Ранее', rename: 'Переименовать', del: 'Удалить', delSure: 'Точно удалить', more: 'Действия',
       account: 'Аккаунт', language: 'Язык', logout: 'Выйти', sbOpen: 'Открыть панель', sbClose: 'Закрыть панель',
       morning: 'Доброе утро', day: 'Добрый день', evening: 'Добрый вечер', night: 'Доброй ночи', ask: 'О чём поговорим?',
@@ -591,6 +591,18 @@
     'gpt-6-luna': 'GPT-6 Luna', 'gpt-6.2-sol': 'GPT-6.2 Sol',
   };
 
+  /* DODA: so'rov aniq ishga o'xshasa va mos agent aniq bo'lsa, javob ostida taklif ko'rsatadi (AI siz, qoidalar bo'yicha) */
+  async function suggestAgent(text, el) {
+    if (!text || text.trim().length < 25) return;
+    const r = await api('/api/agents/route', { method: 'POST', body: { text } });
+    const m = r.status === 200 && r.data && r.data.match;
+    if (!m || m.confidence !== 'high' || !el.isConnected) return;
+    const chip = h('div', { class: 'min-sug' }, h('span', {}, tr('sugFor') + ' '), h('b', {}, m.name),
+      h('button', { type: 'button', class: 'min-btn primary', onclick: () => { chip.remove(); document.dispatchEvent(new CustomEvent('doda:open', { detail: { kind: 'agents', agent: m.agentId, text } })); } }, tr('sugGo')),
+      h('button', { type: 'button', class: 'min-icon', 'aria-label': tr('closeT'), onclick: () => chip.remove() }, svg(IC.x, 14)));
+    el.append(chip); scrollDown();
+  }
+
   async function send(text) {
     addUser(text);
     const reply = addDoda();
@@ -627,6 +639,7 @@
             reply.meta.textContent = `${LABEL[model] || model} · $${data.costUsd.toFixed(4)}` + (frac >= 0.8 ? ` · ${tr('limit')}: $${data.monthUsd.toFixed(2)} / $${data.budgetUsd}` : '');
             setBusy(false);
             refreshListSoon();
+            suggestAgent(text, reply.el);
           } else if (event === 'memory') {
             reply.el.append(h('div', { class: 'min-mem' }, tr('remembered') + data.facts.join('; '))); scrollDown();
             document.dispatchEvent(new CustomEvent('doda:memory'));
@@ -863,7 +876,7 @@
       h('b', {}, tr('keyBannerT')), h('p', {}, tr('keyBannerP')),
       h('div', { class: 'min-consent-actions' }, h('button', { type: 'button', class: 'min-btn primary', onclick: () => openOverlay('keys') }, tr('keyBannerB'))));
   }
-  document.addEventListener('doda:open', (e) => { const d = e.detail || {}; closeFiles(true); openOverlay(d.kind, d.agent ? { agent: d.agent } : undefined); });
+  document.addEventListener('doda:open', (e) => { const d = e.detail || {}; closeFiles(true); openOverlay(d.kind, d.agent ? { agent: d.agent, text: d.text } : undefined); });
   document.addEventListener('doda:open-keys', () => { closeFiles(true); openOverlay('keys'); });
   document.addEventListener('doda:keys', () => { refreshKeys(); serverSttRefresh(); });
   function serverSttRefresh() {

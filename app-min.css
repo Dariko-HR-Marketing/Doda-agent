@@ -188,3 +188,8 @@ body.min-on{overflow:hidden}
 .rec-stop:hover:not(:disabled){background:#24495e}
 .rec-send{background:linear-gradient(135deg,#6af08a,#27c07a);color:#052c1f}
 @media (prefers-reduced-motion:reduce){.rec-wave{display:none}}
+.min-sug{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;padding:9px 12px;border:1px solid #2f5f55;border-radius:12px;background:#0d2b33;font-size:13px;color:#b8d6cf;animation:minsug .35s ease both}
+.min-sug b{color:#9af0b4}
+.min-sug .min-btn{margin-left:auto;padding:6px 12px}
+@keyframes minsug{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.min-sug{animation:none}}

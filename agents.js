@@ -538,12 +538,12 @@
     return root;
   }
 
-  async function openById(id) {
+  async function openById(id, text) {
     const r = await api('/api/agents');
     const a = r.status === 200 ? r.data.agents.find((x) => x.id === id) : null;
-    if (a) agentPage(a); else home();
+    if (a) agentPage(a, text ? 'work' : undefined, text); else home();
   }
-  function mount(container, opts = {}) { unmount(); box = h('div', { class: 'agroot' }); container.append(box); if (opts.agent) openById(opts.agent); else home(); }
+  function mount(container, opts = {}) { unmount(); box = h('div', { class: 'agroot' }); container.append(box); if (opts.agent) openById(opts.agent, opts.text); else home(); }
   function unmount() { if (box) box.remove(); box = null; }
   window.DODA_AGENTS = { mount, unmount };
 })();
